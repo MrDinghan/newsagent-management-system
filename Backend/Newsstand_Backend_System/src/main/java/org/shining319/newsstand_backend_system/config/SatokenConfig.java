@@ -20,8 +20,7 @@ public class SatokenConfig implements WebMvcConfigurer {
         // 注册 Sa-Token 拦截器，打开注解式鉴权功能
         InterceptorRegistration securityInterceptor = registry.addInterceptor(new SaInterceptor());
         // 排除不需要拦截的路径
-        securityInterceptor.excludePathPatterns("api/login/**", "api/register/**");
-        securityInterceptor.addPathPatterns("/**");
+        securityInterceptor.excludePathPatterns("/**");
     }
 
 }

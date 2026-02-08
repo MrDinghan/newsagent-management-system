@@ -47,8 +47,7 @@ public class GlobalResponseOperationCustomizer implements OperationCustomizer {
                                                             "/SaResult"))
                                                     .example(Map.of(
                                                             "code", 401,
-                                                            "message", "The current session is not logged in",
-                                                            "data", new Object()
+                                                            "msg", "The current session is not logged in"
                                                     )))));
 
 

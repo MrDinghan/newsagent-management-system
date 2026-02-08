@@ -19,6 +19,69 @@ import org.springframework.web.bind.annotation.*;
 public class GlobalExceptionHandler {
 
     /**
+     * BusinessException业务异常拦截
+     *
+     * @param e BusinessException
+     * @return Result 响应给前端的统一结果
+     */
+    @ExceptionHandler(BusinessException.class)
+    @ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Business logic error",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Result.class)
+            )
+    )
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Result<Void> handleBusinessException(BusinessException e) {
+        return Result.fail(e.getMessage());
+    }
+
+    /**
+     * NotFoundException资源不存在异常拦截
+     *
+     * @param e NotFoundException
+     * @return Result 响应给前端的统一结果
+     */
+    @ExceptionHandler(NotFoundException.class)
+    @ApiResponse(
+            responseCode = "404",
+            description = "Not Found - Resource does not exist",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Result.class)
+            )
+    )
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    public Result<Void> handleNotFoundException(NotFoundException e) {
+        return Result.fail(e.getMessage());
+    }
+
+    /**
+     * ConflictException资源冲突异常拦截
+     *
+     * @param e ConflictException
+     * @return Result 响应给前端的统一结果
+     */
+    @ExceptionHandler(ConflictException.class)
+    @ApiResponse(
+            responseCode = "409",
+            description = "Conflict - Resource conflict",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Result.class)
+            )
+    )
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseBody
+    public Result<Void> handleConflictException(ConflictException e) {
+        return Result.fail(e.getMessage());
+    }
+
+    /**
      * RuntimeException全局异常拦截
      *
      * @param e RuntimeException

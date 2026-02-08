@@ -83,7 +83,7 @@ public class SwaggerConfig {
     public GroupedOpenApi publicApi(GlobalResponseOperationCustomizer customizer) {
         return GroupedOpenApi.builder()
                 .group("all-api")
-                .pathsToMatch("/**")
+                .pathsToExclude("/**")
                 .addOperationCustomizer(customizer)
                 .build();
     }
