@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: Newsstand_Backend_System
+  datasource:
+    url: jdbc:mysql://agile42.cajw2e4cixx8.us-east-1.rds.amazonaws.com/nms_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Ruyuan_0815
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # HikariCP连接池配置
+    hikari:
+      # 连接池名称
+      pool-name: SpringBootHikariCP
+      # 连接池大小
+      minimum-idle: 20
+      maximum-pool-size: 100
+      # 连接超时设置
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # 连接泄漏检测
+      leak-detection-threshold: 120000
+      # 自动提交
+      auto-commit: false
+server:
+  port: 8080
+#  swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: false
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: false
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    disable-swagger-default-url: true
+  packages-to-scan: org.shining319.newsstand_backend_system.controller
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+##########MyBatis-Plus##########
+mybatis-plus:
+#  type-aliases-package: zhyfactor.inventorymanagementsystem.imsentity
+  configuration:
+    # 使用 SLF4J 日志实现（通过 Logback），可在 logback.xml 中统一控制日志级别
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    # 开启下划线转驼峰
+    map-underscore-to-camel-case: true
+    # 解决mybatis默认情况下, 当返回行的所有列都是空时(含属性无法自动映射), 默认返回 null
+    return-instance-for-empty-row: true
+    # 解决当返回值为 Map 或 List<Map> 时，null 值对应的 key 没有添加至 Map 里
+    call-setters-on-nulls: true
+############## Sa-Token 配置 (文档: https://sa-token.cc) ##############
+sa-token:
+  # token 名称（同时也是 cookie 名称）
+  token-name: satoken
+  # token 有效期（单位：秒） 默认30天，-1 代表永久有效
+  timeout: 2592000
+  # token 最低活跃频率（单位：秒），在此时间（2个小时）内再次请求会刷新 token 有效期，2小时内不活跃则不刷新
+  active-timeout: -1
+  # 是否允许同一账号多地同时登录 （为 true 时允许一起登录, 为 false 时新登录挤掉旧登录）
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个 token （为 true 时所有登录共用一个 token, 为 false 时每次登录新建一个 token）
+  is-share: false
+  # 单体项目使用uuid 作为 token 格式
+  token-style: uuid
+  # 是否输出操作日志
+  is-log: true
+  # token 前缀
+  tokenPrefix: Bearer
+  # 日志是否彩色打印
+  isColorLog: true
+##########CORS配置##########
+cors:
+  # 允许的前端域名，多个用逗号分隔
+  # 生产环境：根据实际部署的前端地址修改
+  allowed-origins: http://34.194.175.52:80,http://34.194.175.52,http://34.194.175.52:8080
+  # 是否允许携带认证信息（cookies, authorization headers）
+  allow-credentials: true
+  # 预检请求的有效期（秒）
+  max-age: 3600
