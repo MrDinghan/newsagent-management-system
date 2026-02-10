@@ -13,7 +13,7 @@ import java.math.BigDecimal;
  * @Description: 创建产品请求DTO
  **/
 @Data
-@Schema(description = "创建产品请求")
+@Schema(description = "Create product request")
 public class CreateProductRequest {
 
     @NotBlank(message = "产品名称不能为空")

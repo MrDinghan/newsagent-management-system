@@ -145,7 +145,7 @@ public class GlobalExceptionHandler {
 
 
 
-    @Schema(description = "参数验证失败响应")
+    @Schema(description = "Parameter validation failure response")
     public static class ValidationExceptionResult extends Result<Map<String, String>> {
         @Schema(description = "错误信息", example = "参数验证失败")
         @Override
@@ -159,7 +159,16 @@ public class GlobalExceptionHandler {
         }
     }
 
-    @Schema(description = "资源冲突响应")
+    @Schema(description = "Resource does not exist response")
+    public static class NotFoundExceptionResult extends Result<Void> {
+        @Schema(description = "错误信息", example = "资源不存在")
+        @Override
+        public String getErrorMsg() {
+            return super.getErrorMsg();
+        }
+    }
+
+    @Schema(description = "Resource conflict response")
     public static class ConflictExceptionResult extends Result<Void> {
         @Schema(description = "错误信息", example = "资源已存在")
         @Override
@@ -168,7 +177,7 @@ public class GlobalExceptionHandler {
         }
     }
 
-    @Schema(description = "运行时异常响应")
+    @Schema(description = "Runtime exception response")
     public static class RuntimeExceptionResult extends Result<Void> {
         @Schema(description = "错误信息", example = "服务器异常信息")
         @Override

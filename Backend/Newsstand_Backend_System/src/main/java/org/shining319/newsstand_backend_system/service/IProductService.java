@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
 
 /**
@@ -31,4 +32,14 @@ public interface IProductService extends IService<Product> {
      * @return MyBatis-Plus分页对象
      */
     Page<Product> queryProducts(QueryProductRequest request);
+
+    /**
+     * 更新产品信息（不包含库存）
+     *
+     * @param id      产品ID
+     * @param request 更新请求（name, type, price）
+     * @return 更新后的产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     */
+    Product updateProduct(String id, UpdateProductRequest request);
 }

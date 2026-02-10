@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.dto.response.ProductVO;
 import org.shining319.newsstand_backend_system.dto.response.Result;
 import org.shining319.newsstand_backend_system.entity.Product;
@@ -45,7 +46,7 @@ public class ProductController {
      * @param request 创建产品请求
      * @return 创建的产品信息
      */
-    @PostMapping("/create")
+    @PostMapping
     @Operation(
             summary = "Create product",
             description = "Create a new newspaper or magazine product, the product name cannot be repeated"
@@ -88,7 +89,7 @@ public class ProductController {
      * @param request 查询请求
      * @return 产品列表
      */
-    @GetMapping("/query")
+    @GetMapping
     @Operation(
             summary = "Query product list with pagination",
             description = "Query product list with pagination and optional type filter. " +
@@ -152,10 +153,64 @@ public class ProductController {
     }
 
     /**
+     * 更新产品信息（不包含库存）
+     *
+     * @param id      产品ID
+     * @param request 更新请求
+     * @return 更新后的产品信息
+     */
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Update product",
+            description = "Update product name, type and price. Stock adjustment is handled by a separate endpoint."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Update product request body",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = UpdateProductRequest.class)
+            )
+    )
+    public Result<ProductVO> updateProduct(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateProductRequest request) {
+        Product product = productService.updateProduct(id, request);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
      * Swagger文档用的自定义响应包装类
      * 用于在OpenAPI文档中正确显示Result<ProductVO>的结构
      */
-    @Schema(description = "创建产品响应")
+    @Schema(description = "Create product responses")
     private static class ProductVOResult extends Result<ProductVO> {
         @Schema(description = "产品数据")
         @Override
@@ -168,7 +223,7 @@ public class ProductController {
      * Swagger文档用的分页查询响应包装类
      * 用于在OpenAPI文档中正确显示Result<List<ProductVO>>的结构
      */
-    @Schema(description = "分页查询产品响应")
+    @Schema(description = "Query product response by page")
     private static class ProductListResult extends Result<List<ProductVO>> {
         @Schema(description = "产品列表")
         @Override

@@ -37,4 +37,24 @@ public interface ProductMapper extends BaseMapper<Product> {
             @Param("deleted") Boolean deleted,
             @Param("type") String type
     );
+
+    /**
+     * 按 ID 查询产品（使用自定义 TypeHandler 处理 UUID）
+     *
+     * @param id 产品 ID
+     * @return 产品实体，不存在或已删除返回 null
+     */
+    Product selectProductById(@Param("id") String id);
+
+    /**
+     * 按 ID 更新产品基本信息（使用自定义 TypeHandler 处理 UUID，动态 SET 跳过 null 字段）
+     *
+     * @param id      产品 ID
+     * @param product 包含待更新字段的产品实体（null 字段不更新）
+     * @return 影响的行数
+     */
+    int updateProductById(
+            @Param("id") String id,
+            @Param("product") Product product
+    );
 }
