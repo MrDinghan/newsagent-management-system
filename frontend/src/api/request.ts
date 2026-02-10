@@ -2,16 +2,6 @@ import { message } from "antd";
 import type { AxiosRequestConfig } from "axios";
 import Axios from "axios";
 
-export const HttpStatus = {
-  OK: 200,
-  CREATED: 201,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  INTERNAL_SERVER_ERROR: 500,
-} as const;
-
 export const AXIOS_INSTANCE = Axios.create({
   withCredentials: true,
 });
@@ -22,17 +12,18 @@ AXIOS_INSTANCE.interceptors.request.use((config) => {
 
 AXIOS_INSTANCE.interceptors.response.use(
   (response) => {
-    const code = response.data?.code;
-    if (code === HttpStatus.OK || code === HttpStatus.CREATED) {
+    const success = response.data?.success;
+    const errorMsg = response.data?.errorMsg;
+    if (success) {
       return response;
     }
-    return Promise.reject(new Error("Unexpected response code: " + code));
+    return Promise.reject(new Error(errorMsg || "Unknown error"));
   },
   (error) => {
     if (Axios.isCancel(error)) {
       return Promise.reject(error);
     }
-    message.error("An error occurred");
+    message.error(error?.message || "An error occurred");
     return Promise.reject(error);
   },
 );
@@ -46,7 +37,7 @@ export const request = <T>(url: string, options?: RequestInit): Promise<T> => {
     headers: options?.headers as AxiosRequestConfig["headers"],
     cancelToken: source.token,
     signal: options?.signal as AbortSignal,
-  }).then((res) => res as T);
+  }).then((res) => res.data as T);
 
   // @ts-expect-error attach cancel method for react-query
   promise.cancel = () => source.cancel("Query was cancelled");
