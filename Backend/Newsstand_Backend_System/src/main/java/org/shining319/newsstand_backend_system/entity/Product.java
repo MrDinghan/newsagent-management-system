@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,11 +18,12 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("products")
+@TableName(value = "products",autoResultMap = true)
 @Schema(description = "产品实体")
 public class Product {
 
     @TableId(type = IdType.INPUT)
+    @TableField(value = "id", typeHandler = UuidBinaryTypeHandler.class)
     @Schema(description = "产品ID (UUIDv7)", example = "018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e")
     private String id;
 

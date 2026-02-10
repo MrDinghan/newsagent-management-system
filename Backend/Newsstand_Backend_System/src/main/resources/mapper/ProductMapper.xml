@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.shining319.newsstand_backend_system.dao.ProductMapper">
+
+    <!-- 自定义 ResultMap，明确指定 TypeHandler -->
+    <resultMap id="BaseResultMap" type="org.shining319.newsstand_backend_system.entity.Product" autoMapping="true">
+        <id column="id" property="id" typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="price" property="price"/>
+        <result column="stock" property="stock"/>
+        <result column="version" property="version"/>
+        <result column="deleted" property="deleted"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 自定义 INSERT 语句，明确指定 TypeHandler -->
+    <insert id="insertProduct" parameterType="org.shining319.newsstand_backend_system.entity.Product">
+        INSERT INTO products (id, name, type, price, stock, deleted)
+        VALUES (
+            #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+            #{name},
+            #{type},
+            #{price},
+            #{stock},
+            #{deleted}
+        )
+    </insert>
+
+    <!-- 自定义分页查询，使用 BaseResultMap 确保 TypeHandler 生效 -->
+    <select id="selectPageWithTypeHandler" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE deleted = #{deleted}
+        <if test="type != null and type != ''">
+            AND type = #{type}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>
+

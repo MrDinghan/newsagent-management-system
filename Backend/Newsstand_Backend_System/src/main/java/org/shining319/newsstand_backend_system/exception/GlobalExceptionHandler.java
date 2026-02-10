@@ -1,25 +1,34 @@
 package org.shining319.newsstand_backend_system.exception;
 
-import cn.dev33.satoken.exception.NotLoginException;
-import cn.dev33.satoken.util.SaResult;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.shining319.newsstand_backend_system.dto.response.Result;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @Author: shining319
  * @Date: 2026/2/8
- * @Description: 全局异常处理
+ * @Description: 全局异常处理器
+ * 统一处理系统中的各类异常，并返回标准的 Result 响应格式
  **/
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
      * BusinessException业务异常拦截
+     * 处理业务逻辑中抛出的业务异常
      *
      * @param e BusinessException
      * @return Result 响应给前端的统一结果
@@ -41,6 +50,7 @@ public class GlobalExceptionHandler {
 
     /**
      * NotFoundException资源不存在异常拦截
+     * 处理查询、更新、删除操作中资源不存在的情况
      *
      * @param e NotFoundException
      * @return Result 响应给前端的统一结果
@@ -62,6 +72,7 @@ public class GlobalExceptionHandler {
 
     /**
      * ConflictException资源冲突异常拦截
+     * 处理资源冲突的情况，例如：唯一约束冲突、重复创建等
      *
      * @param e ConflictException
      * @return Result 响应给前端的统一结果
@@ -69,10 +80,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     @ApiResponse(
             responseCode = "409",
-            description = "Conflict - Resource conflict",
+            description = "Conflict - Resource conflict (e.g., duplicate name, unique constraint violation)",
             content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Result.class)
+                    schema = @Schema(implementation = ConflictExceptionResult.class)
             )
     )
     @ResponseStatus(HttpStatus.CONFLICT)
@@ -82,69 +93,92 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * RuntimeException全局异常拦截
+     * 处理Bean Validation验证失败异常
+     * 处理请求参数校验失败的情况（@Valid 注解触发）
      *
-     * @param e RuntimeException
+     * @param e MethodArgumentNotValidException
+     * @return Result 响应给前端的统一结果，包含详细的字段错误信息
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Validation failed (field validation errors)",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ValidationExceptionResult.class)
+            )
+    )
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Result<Map<String, String>> handleValidationException(MethodArgumentNotValidException e) {
+        Map<String, String> errors = new HashMap<>();
+        e.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return Result.fail("参数验证失败", errors);
+    }
+
+    /**
+     * 全局异常拦截
+     * 处理所有未被其他异常处理器捕获的异常
+     *
+     * @param e Exception
      * @return Result 响应给前端的统一结果
      */
     @ExceptionHandler(Exception.class)
     @ApiResponse(
             responseCode = "500",
-            description = "Internal Server Error - Runtime exception occurred",
+            description = "Internal Server Error - Unexpected server error occurred",
             content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Result.class)
+                    schema = @Schema(implementation = RuntimeExceptionResult.class)
             )
     )
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ResponseBody
-    public Result handleRuntimeException(Exception e) {
-        return Result.fail("Server abnormalities");
+    public Result<Void> handleRuntimeException(Exception e) {
+        log.error("未预期的异常: {}", e.getMessage(), e);
+        return Result.fail(e.getMessage());
     }
 
-    /**
-     * Satoken全局异常拦截（拦截项目中的NotLoginException异常）
-     *
-     * @param nle NotLoginException
-     * @return SaResult 响应给前端的统一结果
-     */
-    @ExceptionHandler(NotLoginException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    @ResponseBody
-    public SaResult handlerNotLoginException(NotLoginException nle, HttpServletResponse response) {
 
-        // 打印堆栈，以供调试
-        nle.printStackTrace();
 
-        // 判断场景值，定制化异常信息
-        String message = "";
-        int code = SaResult.CODE_NOT_LOGIN;
-        if (nle.getType().equals(NotLoginException.NOT_TOKEN)) {
-            message = "Token is missing";
-            code = SaResult.CODE_ERROR;
-        } else if (nle.getType().equals(NotLoginException.INVALID_TOKEN)) {
-            message = "Token is invalid";
-            code = SaResult.CODE_ERROR;
-        } else if (nle.getType().equals(NotLoginException.TOKEN_TIMEOUT)) {
-            message = "The token has expired";
-            code = SaResult.CODE_ERROR;
-        } else if (nle.getType().equals(NotLoginException.BE_REPLACED)) {
-            message = "Token has been topped down";
-            code = SaResult.CODE_ERROR;
-        } else if (nle.getType().equals(NotLoginException.KICK_OUT)) {
-            message = "The token has been kicked offline";
-            code = SaResult.CODE_ERROR;
-        } else if (nle.getType().equals(NotLoginException.TOKEN_FREEZE)) {
-            message = "The token has been frozen";
-            code = SaResult.CODE_ERROR;
-        } else if (nle.getType().equals(NotLoginException.NO_PREFIX)) {
-            message = "Tokens are not submitted according to the specified prefix";
-            code = SaResult.CODE_ERROR;
-        } else {
-            message = "The current session is not logged in";
+    @Schema(description = "参数验证失败响应")
+    public static class ValidationExceptionResult extends Result<Map<String, String>> {
+        @Schema(description = "错误信息", example = "参数验证失败")
+        @Override
+        public String getErrorMsg() {
+            return super.getErrorMsg();
         }
-
-        // 返回给前端
-        return SaResult.error(message).setCode(code);
+        @Schema(description = "字段错误信息",example = "{'name':'不能为空'}")
+        @Override
+        public Map<String, String> getData() {
+            return super.getData();
+        }
     }
+
+    @Schema(description = "资源冲突响应")
+    public static class ConflictExceptionResult extends Result<Void> {
+        @Schema(description = "错误信息", example = "资源已存在")
+        @Override
+        public String getErrorMsg() {
+            return super.getErrorMsg();
+        }
+    }
+
+    @Schema(description = "运行时异常响应")
+    public static class RuntimeExceptionResult extends Result<Void> {
+        @Schema(description = "错误信息", example = "服务器异常信息")
+        @Override
+        public String getErrorMsg() {
+            return super.getErrorMsg();
+        }
+    }
+
+
+
+
+
 }

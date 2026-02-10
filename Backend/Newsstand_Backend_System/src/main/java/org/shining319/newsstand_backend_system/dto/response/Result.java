@@ -26,27 +26,39 @@ public class Result<T> {
     private T data;
     @Schema(description = "数据总数量", example = "10")
     private Long total;
-    /*@Schema(description = "身份令牌", example = "返回令牌信息")
-    private SaTokenInfo tokenInfo;*/
+    @Schema(description = "总页数", example = "5")
+    private Integer totalPages;
 
     public static Result ok() {
-        return new Result(true, null, null, null);
+        return new Result(true, null, null, null, null);
     }
 
     public static <T> Result<T> ok(T data) {
-        return new Result(true, null, data, null);
+        return new Result(true, null, data, null, null);
     }
 
     public static <T> Result<List<T>> ok(List<T> data, Long total) {
-        return new Result(true, null, data, total);
+        return new Result(true, null, data, total, null);
     }
 
     public static Result fail(String errorMsg) {
-        return new Result(false, errorMsg, null, null);
+        return new Result(false, errorMsg, null, null, null);
     }
 
     public static <T> Result<T> fail(String errorMsg, T data) {
-        return new Result(false, errorMsg, data, null);
+        return new Result(false, errorMsg, data, null, null);
+    }
+
+    /**
+     * 分页查询成功响应（包含总页数）
+     *
+     * @param data 数据列表
+     * @param total 总记录数
+     * @param totalPages 总页数
+     * @return Result对象
+     */
+    public static <T> Result<List<T>> ok(List<T> data, Long total, Integer totalPages) {
+        return new Result(true, null, data, total, totalPages);
     }
 
 }

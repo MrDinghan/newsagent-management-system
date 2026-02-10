@@ -8,9 +8,13 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @Author: shining319
@@ -20,6 +24,23 @@ import org.springframework.context.annotation.Configuration;
  **/
 @Configuration
 public class SwaggerConfig {
+
+    /**
+     * 响应码排除规则配置
+     * Key: 方法全限定名（格式：ControllerClassName.methodName）
+     * Value: 需要排除的响应码集合
+     */
+    private static final Map<String, Set<String>> RESPONSE_CODE_EXCLUSIONS = new HashMap<>();
+
+    static {
+        // ProductController 相关接口
+        RESPONSE_CODE_EXCLUSIONS.put("ProductController.createProduct", Set.of("404"));
+        RESPONSE_CODE_EXCLUSIONS.put("ProductController.queryProducts", Set.of("404", "409"));
+
+        // 可以继续添加其他接口的排除规则
+        // RESPONSE_CODE_EXCLUSIONS.put("UserController.login", Set.of("404"));
+        // RESPONSE_CODE_EXCLUSIONS.put("OrderController.createOrder", Set.of("404"));
+    }
 
     /**
      * 自定义 OpenAPI 配置
@@ -72,20 +93,35 @@ public class SwaggerConfig {
                         "注意：在 Swagger UI 的 Authorize 对话框中，需要输入完整的 token 值（包含 'Bearer ' 前缀）");
     }
 
+
     /**
-     * 配置 API 分组
-     * 集成全局响应操作自定义器，自动为需要认证的接口添加 401 响应说明
+     * 自定义操作定制器
+     * 用于移除由全局异常处理器自动添加的、但实际不会发生的响应码
      *
-     * @param customizer 全局响应操作自定义器实例
-     * @return GroupedOpenApi 实例
+     * 规则：
+     * - 根据 RESPONSE_CODE_EXCLUSIONS 配置，自动移除指定接口的响应码
+     * - 配置格式：ControllerClassName.methodName -> Set<响应码>
+     *
+     * @return OperationCustomizer 实例
      */
     @Bean
-    public GroupedOpenApi publicApi(GlobalResponseOperationCustomizer customizer) {
-        return GroupedOpenApi.builder()
-                .group("all-api")
-                .pathsToExclude("/**")
-                .addOperationCustomizer(customizer)
-                .build();
+    public OperationCustomizer operationCustomizer() {
+        return (operation, handlerMethod) -> {
+            // 获取方法标识：ControllerClassName.methodName
+            String className = handlerMethod.getBeanType().getSimpleName();
+            String methodName = handlerMethod.getMethod().getName();
+            String methodKey = className + "." + methodName;
+
+            // 查找该方法的排除规则
+            Set<String> excludedCodes = RESPONSE_CODE_EXCLUSIONS.get(methodKey);
+
+            // 如果有排除规则，则移除对应的响应码
+            if (excludedCodes != null && operation.getResponses() != null) {
+                excludedCodes.forEach(code -> operation.getResponses().remove(code));
+            }
+
+            return operation;
+        };
     }
 
 }
