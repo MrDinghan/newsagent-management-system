@@ -7,13 +7,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.exception.ConflictException;
+import org.shining319.newsstand_backend_system.exception.NotFoundException;
 import org.shining319.newsstand_backend_system.service.IProductService;
 import org.shining319.newsstand_backend_system.util.UuidUtil;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * @Author: shining319
@@ -81,6 +85,38 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         // 3. 返回分页结果
         return page;
+    }
+
+    /**
+     * 更新产品信息（不包含库存）
+     * 使用自定义 XML 方法确保 UUID TypeHandler 生效，不触发乐观锁
+     *
+     * @param id      产品ID
+     * @param request 更新请求（name, type, price）
+     * @return 更新后的产品实体
+     * @throws NotFoundException 当产品不存在时
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Product updateProduct(String id, UpdateProductRequest request) {
+        // 1. 查找产品（自定义 XML，确保 UUID TypeHandler 生效）
+        Product product = baseMapper.selectProductById(id);
+        if (product == null) {
+            throw new NotFoundException("产品不存在: id=" + id);
+        }
+
+        // 2. 将要更新的字段写入 product（null 字段保持原值，XML 的 <if> 会跳过）
+        LocalDateTime now = LocalDateTime.now().withNano(0); // DATETIME 精度到秒
+        if (request.getName() != null) product.setName(request.getName());
+        if (request.getType() != null) product.setType(request.getType().name());
+        if (request.getPrice() != null) product.setPrice(request.getPrice());
+        product.setUpdatedAt(now);
+
+        // 3. 执行更新（自定义 XML，WHERE 显式指定 TypeHandler，不含 version 字段不触发乐观锁）
+        baseMapper.updateProductById(id, product);
+
+        log.info("产品更新成功: id={}, name={}", product.getId(), product.getName());
+        return product;
     }
 
     /**

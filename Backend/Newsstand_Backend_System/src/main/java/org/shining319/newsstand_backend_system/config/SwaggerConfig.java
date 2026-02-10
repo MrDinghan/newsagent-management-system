@@ -1,12 +1,10 @@
 package org.shining319.newsstand_backend_system.config;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +34,7 @@ public class SwaggerConfig {
         // ProductController 相关接口
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.createProduct", Set.of("404"));
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.queryProducts", Set.of("404", "409"));
+        RESPONSE_CODE_EXCLUSIONS.put("ProductController.updateProduct", Set.of("409"));
 
         // 可以继续添加其他接口的排除规则
         // RESPONSE_CODE_EXCLUSIONS.put("UserController.login", Set.of("404"));
@@ -64,12 +63,12 @@ public class SwaggerConfig {
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
                 .externalDocs(new ExternalDocumentation()
                         .description("Project Documentation")
-                        .url("https://github.com/MrDinghan/newsagent-management-system"))
+                        .url("https://github.com/MrDinghan/newsagent-management-system"));
                 // 配置全局认证要求
-                .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
+                /*.addSecurityItem(new SecurityRequirement().addList("Bearer_Authentication"))*/
                 // 配置认证方案
-                .components(new Components()
-                        .addSecuritySchemes("Bearer Authentication", createBearerScheme()));
+                /*.components(new Components()
+                        .addSecuritySchemes("Bearer_Authentication", createBearerScheme()));*/
     }
 
     /**

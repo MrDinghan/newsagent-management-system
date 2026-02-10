@@ -39,5 +39,26 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 按 ID 查询单个产品，明确指定 UUID TypeHandler -->
+    <select id="selectProductById" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = false
+    </select>
+
+    <!-- 按 ID 更新产品基本信息，动态 SET 跳过 null 字段，明确指定 UUID TypeHandler -->
+    <update id="updateProductById">
+        UPDATE products
+        <set>
+            <if test="product.name != null">name = #{product.name},</if>
+            <if test="product.type != null">type = #{product.type},</if>
+            <if test="product.price != null">price = #{product.price},</if>
+            updated_at = #{product.updatedAt}
+        </set>
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = false
+    </update>
+
 </mapper>
 
