@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:api": "orval"
+    "generate:api": "orval",
+    "deploy": "./build_and_deploy.sh nms-frontend latest ./aws-shining319.pem 34.194.175.52 ec2-user /home/ec2-user/nms-system/frontend"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",

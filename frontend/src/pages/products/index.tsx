@@ -1,4 +1,4 @@
-import { EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, StockOutlined } from "@ant-design/icons";
 import { Button, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { type FC, useState } from "react";
@@ -9,6 +9,7 @@ import type {
 } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
 import { useQueryProducts } from "@/api/endpoints/product-management";
 
+import AdjustStockModal from "./components/AdjustStockModal";
 import CreateProductModal from "./components/CreateProductModal";
 import EditProductModal from "./components/EditProductModal";
 
@@ -21,6 +22,7 @@ const typeOptions = [
 const ProductsPage: FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<ProductVO | null>(null);
+  const [stockProduct, setStockProduct] = useState<ProductVO | null>(null);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState<QueryProductsType | "">("");
@@ -54,13 +56,22 @@ const ProductsPage: FC = () => {
     {
       title: "Action",
       render: (_, record) => (
-        <Button
-          type="link"
-          icon={<EditOutlined />}
-          onClick={() => setEditProduct(record)}
-        >
-          Edit
-        </Button>
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => setEditProduct(record)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="link"
+            icon={<StockOutlined />}
+            onClick={() => setStockProduct(record)}
+          >
+            Adjust Stock
+          </Button>
+        </Space>
       ),
     },
   ];
@@ -127,6 +138,12 @@ const ProductsPage: FC = () => {
         open={!!editProduct}
         product={editProduct}
         onClose={() => setEditProduct(null)}
+      />
+
+      <AdjustStockModal
+        open={!!stockProduct}
+        product={stockProduct}
+        onClose={() => setStockProduct(null)}
       />
     </>
   );
