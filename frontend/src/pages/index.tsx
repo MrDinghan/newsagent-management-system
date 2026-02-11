@@ -1,20 +1,8 @@
-import { css } from "@emotion/css";
-import { Button } from "antd";
 import { type FC } from "react";
+import { Navigate } from "react-router-dom";
 
 const HomePage: FC = () => {
-  return (
-    <div>
-      <div
-        className={css`
-          color: red;
-        `}
-      >
-        home page
-      </div>
-      <Button type="primary">click</Button>
-    </div>
-  );
+  return <Navigate to="/products" replace />;
 };
 
 export default HomePage;
