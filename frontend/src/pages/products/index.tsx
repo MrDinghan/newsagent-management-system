@@ -1,4 +1,4 @@
-import { PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { type FC, useState } from "react";
@@ -10,6 +10,7 @@ import type {
 import { useQueryProducts } from "@/api/endpoints/product-management";
 
 import CreateProductModal from "./components/CreateProductModal";
+import EditProductModal from "./components/EditProductModal";
 
 const typeOptions = [
   { label: "All", value: "" },
@@ -17,39 +18,52 @@ const typeOptions = [
   { label: "Magazine", value: "MAGAZINE" },
 ];
 
-const columns: ColumnsType<ProductVO> = [
-  {
-    title: "Name",
-    dataIndex: "name",
-  },
-  {
-    title: "Type",
-    dataIndex: "type",
-    render: (type: string) => (
-      <Tag color={type === "NEWSPAPER" ? "blue" : "green"}>
-        {type === "NEWSPAPER" ? "Newspaper" : "Magazine"}
-      </Tag>
-    ),
-  },
-  {
-    title: "Price",
-    dataIndex: "price",
-    render: (price: number) => `€${price.toFixed(2)}`,
-  },
-  {
-    title: "Stock",
-    dataIndex: "stock",
-    render: (stock: number) => (
-      <span style={{ color: stock === 0 ? "red" : undefined }}>{stock}</span>
-    ),
-  },
-];
-
 const ProductsPage: FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState<ProductVO | null>(null);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState<QueryProductsType | "">("");
+
+  const columns: ColumnsType<ProductVO> = [
+    {
+      title: "Name",
+      dataIndex: "name",
+    },
+    {
+      title: "Type",
+      dataIndex: "type",
+      render: (type: string) => (
+        <Tag color={type === "NEWSPAPER" ? "blue" : "green"}>
+          {type === "NEWSPAPER" ? "Newspaper" : "Magazine"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Price",
+      dataIndex: "price",
+      render: (price: number) => `€${price.toFixed(2)}`,
+    },
+    {
+      title: "Stock",
+      dataIndex: "stock",
+      render: (stock: number) => (
+        <span style={{ color: stock === 0 ? "red" : undefined }}>{stock}</span>
+      ),
+    },
+    {
+      title: "Action",
+      render: (_, record) => (
+        <Button
+          type="link"
+          icon={<EditOutlined />}
+          onClick={() => setEditProduct(record)}
+        >
+          Edit
+        </Button>
+      ),
+    },
+  ];
 
   const { data, isLoading } = useQueryProducts({
     request: {},
@@ -107,6 +121,12 @@ const ProductsPage: FC = () => {
       <CreateProductModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+      />
+
+      <EditProductModal
+        open={!!editProduct}
+        product={editProduct}
+        onClose={() => setEditProduct(null)}
       />
     </>
   );

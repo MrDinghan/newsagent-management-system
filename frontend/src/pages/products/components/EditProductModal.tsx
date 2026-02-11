@@ -1,53 +1,66 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { App, Form, Input, InputNumber, Modal, Select } from "antd";
-import { type FC } from "react";
+import { type FC, useEffect } from "react";
 
-import { CreateProductRequestType } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
+import type {
+  ProductVO,
+  UpdateProductRequestType,
+} from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
 import {
   getQueryProductsQueryKey,
-  useCreateProduct,
+  useUpdateProduct,
 } from "@/api/endpoints/product-management";
 
-interface CreateProductModalProps {
+interface EditProductModalProps {
   open: boolean;
+  product: ProductVO | null;
   onClose: () => void;
 }
 
-const CreateProductModal: FC<CreateProductModalProps> = ({ open, onClose }) => {
+const EditProductModal: FC<EditProductModalProps> = ({
+  open,
+  product,
+  onClose,
+}) => {
   const [form] = Form.useForm();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
-  const createMutation = useCreateProduct();
+  const updateMutation = useUpdateProduct();
+
+  useEffect(() => {
+    if (open && product) {
+      form.setFieldsValue({
+        name: product.name,
+        type: product.type,
+        price: product.price,
+      });
+    }
+  }, [open, product, form]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    createMutation.mutate(
-      { data: values },
+    if (!product?.id) return;
+    updateMutation.mutate(
+      { id: product.id, data: values },
       {
         onSuccess: () => {
-          message.success("Product created successfully");
+          message.success("Product updated successfully");
           queryClient.invalidateQueries({
             queryKey: getQueryProductsQueryKey(),
           });
-          form.resetFields();
           onClose();
         },
       },
     );
   };
 
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
-  };
-
   return (
     <Modal
-      title="Add Product"
+      title="Edit Product"
       open={open}
       onOk={handleOk}
-      onCancel={handleCancel}
-      confirmLoading={createMutation.isPending}
+      onCancel={onClose}
+      confirmLoading={updateMutation.isPending}
       destroyOnHidden
     >
       <Form form={form} layout="vertical">
@@ -67,14 +80,13 @@ const CreateProductModal: FC<CreateProductModalProps> = ({ open, onClose }) => {
           label="Type"
           rules={[{ required: true, message: "Please select product type" }]}
         >
-          <Select placeholder="Select type">
-            <Select.Option value={CreateProductRequestType.NEWSPAPER}>
-              Newspaper
-            </Select.Option>
-            <Select.Option value={CreateProductRequestType.MAGAZINE}>
-              Magazine
-            </Select.Option>
-          </Select>
+          <Select
+            placeholder="Select type"
+            options={[
+              { label: "Newspaper", value: "NEWSPAPER" as UpdateProductRequestType },
+              { label: "Magazine", value: "MAGAZINE" as UpdateProductRequestType },
+            ]}
+          />
         </Form.Item>
 
         <Form.Item
@@ -97,28 +109,9 @@ const CreateProductModal: FC<CreateProductModalProps> = ({ open, onClose }) => {
             placeholder="0.00"
           />
         </Form.Item>
-
-        <Form.Item
-          name="stock"
-          label="Initial Stock"
-          rules={[
-            { required: true, message: "Please enter initial stock" },
-            {
-              type: "number",
-              min: 0,
-              message: "Stock cannot be negative",
-            },
-          ]}
-        >
-          <InputNumber
-            style={{ width: "100%" }}
-            precision={0}
-            placeholder="0"
-          />
-        </Form.Item>
       </Form>
     </Modal>
   );
 };
 
-export default CreateProductModal;
+export default EditProductModal;

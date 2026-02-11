@@ -1,10 +1,10 @@
-import { ShoppingOutlined } from "@ant-design/icons";
+import { ReadOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { css } from "@emotion/css";
 import { Layout, Menu, theme } from "antd";
 import { type FC, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const { Sider, Content } = Layout;
+const { Header, Sider, Content } = Layout;
 
 const menuItems = [
   {
@@ -25,44 +25,71 @@ const MainLayout: FC<{ children: ReactNode }> = ({ children }) => {
         min-height: 100vh;
       `}
     >
-      <Sider
+      <Header
         className={css`
-          overflow: auto;
-          height: 100vh;
-          position: sticky;
-          left: 0;
-          top: 0;
+          display: flex;
+          align-items: center;
+          padding: 0 ${token.paddingLG}px;
           background: ${token.colorBgContainer};
+          border-bottom: 1px solid ${token.colorBorderSecondary};
+          position: sticky;
+          top: 0;
+          z-index: 100;
         `}
       >
         <div
           className={css`
-            height: 64px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: ${token.colorTextBase};
-            font-size: ${token.fontSizeLG}px;
+            gap: 8px;
           `}
         >
-          Newsstand
+          <ReadOutlined
+            className={css`
+              font-size: 24px;
+              color: ${token.colorPrimary};
+            `}
+          />
+          <span
+            className={css`
+              font-size: ${token.fontSizeHeading5}px;
+              font-weight: 600;
+              color: ${token.colorTextBase};
+            `}
+          >
+            Newsstand
+          </span>
         </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-        />
-      </Sider>
-      <Content
-        className={css`
-          padding: ${token.paddingLG}px;
-          min-height: 100vh;
-        `}
-      >
-        {children}
-      </Content>
+      </Header>
+      <Layout>
+        <Sider
+          className={css`
+            overflow: auto;
+            height: calc(100vh - 64px);
+            position: sticky;
+            top: 64px;
+            left: 0;
+            background: ${token.colorBgContainer};
+            border-right: 1px solid ${token.colorBorderSecondary};
+          `}
+          theme="light"
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={({ key }) => navigate(key)}
+          />
+        </Sider>
+        <Content
+          className={css`
+            padding: ${token.paddingLG}px;
+            min-height: calc(100vh - 64px);
+          `}
+        >
+          {children}
+        </Content>
+      </Layout>
     </Layout>
   );
 };

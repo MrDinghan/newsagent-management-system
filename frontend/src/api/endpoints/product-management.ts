@@ -26,6 +26,8 @@ import {
 
 import { request } from '../request';
 import type {
+  AdjustStockRequest,
+  BusinessExceptionResult,
   ConflictExceptionResult,
   CreateProductRequest,
   NotFoundExceptionResult,
@@ -291,5 +293,77 @@ export const useCreateProduct = <TError = ValidationExceptionResult | ConflictEx
         TContext
       > => {
       return useMutation(getCreateProductMutationOptions(options), queryClient);
+    }
+    /**
+ * Adjust product stock by the specified quantity. Positive quantity increases stock, negative quantity decreases stock. Stock cannot be adjusted below 0.
+ * @summary Adjust product stock
+ */
+export const getAdjustStockUrl = (id: string,) => {
+
+
+  
+
+  return `/api/products/${id}/adjust-stock`
+}
+
+export const adjustStock = async (id: string,
+    adjustStockRequest: AdjustStockRequest, options?: RequestInit): Promise<ProductVOResult> => {
+  
+  return request<ProductVOResult>(getAdjustStockUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adjustStockRequest,)
+  }
+);}
+
+
+
+
+export const getAdjustStockMutationOptions = <TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adjustStock>>, TError,{id: string;data: AdjustStockRequest}, TContext>, request?: SecondParameter<typeof request>}
+): UseMutationOptions<Awaited<ReturnType<typeof adjustStock>>, TError,{id: string;data: AdjustStockRequest}, TContext> => {
+
+const mutationKey = ['adjustStock'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adjustStock>>, {id: string;data: AdjustStockRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adjustStock(id,data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdjustStockMutationResult = NonNullable<Awaited<ReturnType<typeof adjustStock>>>
+    export type AdjustStockMutationBody = AdjustStockRequest
+    export type AdjustStockMutationError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult
+
+    /**
+ * @summary Adjust product stock
+ */
+export const useAdjustStock = <TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adjustStock>>, TError,{id: string;data: AdjustStockRequest}, TContext>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adjustStock>>,
+        TError,
+        {id: string;data: AdjustStockRequest},
+        TContext
+      > => {
+      return useMutation(getAdjustStockMutationOptions(options), queryClient);
     }
     

@@ -22,20 +22,15 @@ export interface ConflictExceptionResult {
 }
 
 /**
- * 字段错误信息
- */
-export type ValidationExceptionResultData = {[key: string]: string};
-
-/**
  * Parameter validation failure response
  */
 export interface ValidationExceptionResult {
   /** 操作是否成功 */
   success?: boolean;
-  /** 错误信息 */
+  /** 字段错误信息，格式：field1: message1; field2: message2 */
   errorMsg?: string;
-  /** 字段错误信息 */
-  data?: ValidationExceptionResultData;
+  /** 响应数据 */
+  data?: unknown;
   /** 数据总数量 */
   total?: number;
   /** 总页数 */
@@ -186,6 +181,34 @@ export interface CreateProductRequest {
    * @minimum 0
    */
   stock: number;
+}
+
+/**
+ * Adjust product stock request
+ */
+export interface AdjustStockRequest {
+  /**
+   * 库存调整量（正数为增加，负数为减少）
+   * @minimum -9999
+   * @maximum 9999
+   */
+  quantity: number;
+}
+
+/**
+ * Business logic error response
+ */
+export interface BusinessExceptionResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 响应数据 */
+  data?: unknown;
+  /** 数据总数量 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
 }
 
 /**
