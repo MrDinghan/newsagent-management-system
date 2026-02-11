@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
@@ -202,6 +203,62 @@ public class ProductController {
             @PathVariable String id,
             @Valid @RequestBody UpdateProductRequest request) {
         Product product = productService.updateProduct(id, request);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
+     * 调整产品库存
+     *
+     * @param id      产品ID
+     * @param request 调整请求
+     * @return 调整后的产品信息
+     */
+    @PostMapping("/{id}/adjust-stock")
+    @Operation(
+            summary = "Adjust product stock",
+            description = "Adjust product stock by the specified quantity. " +
+                    "Positive quantity increases stock, negative quantity decreases stock. " +
+                    "Stock cannot be adjusted below 0."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Stock adjusted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Insufficient stock (BusinessException) or field validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.BusinessExceptionResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Adjust stock request body",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = AdjustStockRequest.class)
+            )
+    )
+    public Result<ProductVO> adjustStock(
+            @PathVariable String id,
+            @Valid @RequestBody AdjustStockRequest request) {
+        Product product = productService.adjustStock(id, request);
         ProductVO vo = ProductVO.fromEntity(product);
         return Result.ok(vo);
     }

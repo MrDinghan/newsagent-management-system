@@ -60,5 +60,17 @@
         AND deleted = false
     </update>
 
+    <!-- 按 ID 调整库存数量（乐观锁），明确指定 UUID TypeHandler -->
+    <!-- WHERE 包含 version = #{version}，并发冲突时返回 0 行 -->
+    <update id="adjustStockById">
+        UPDATE products
+        SET stock = #{newStock},
+            version = version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = false
+        AND version = #{version}
+    </update>
+
 </mapper>
 

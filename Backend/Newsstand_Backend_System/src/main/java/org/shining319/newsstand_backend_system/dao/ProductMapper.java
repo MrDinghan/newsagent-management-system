@@ -57,4 +57,21 @@ public interface ProductMapper extends BaseMapper<Product> {
             @Param("id") String id,
             @Param("product") Product product
     );
+
+    /**
+     * 按 ID 调整库存数量（乐观锁，使用自定义 TypeHandler 处理 UUID）
+     * WHERE 包含 version 校验，并发修改时返回 0 行
+     *
+     * @param id        产品 ID
+     * @param newStock  调整后的库存量
+     * @param version   当前版本号（乐观锁）
+     * @param updatedAt 更新时间
+     * @return 影响的行数，0 表示乐观锁冲突
+     */
+    int adjustStockById(
+            @Param("id") String id,
+            @Param("newStock") Integer newStock,
+            @Param("version") Integer version,
+            @Param("updatedAt") java.time.LocalDateTime updatedAt
+    );
 }

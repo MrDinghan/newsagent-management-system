@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
+import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
+import org.shining319.newsstand_backend_system.exception.BusinessException;
 import org.shining319.newsstand_backend_system.exception.ConflictException;
 import org.shining319.newsstand_backend_system.exception.NotFoundException;
 import org.shining319.newsstand_backend_system.service.IProductService;
@@ -41,7 +43,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public Product createProduct(CreateProductRequest request) {
         // 预检查：产品名称是否已存在（只检查未删除的产品）
         if (isNameExists(request.getName())) {
-            throw new ConflictException("产品名称已存在: " + request.getName());
+            throw new ConflictException("Product name already exists: " + request.getName());
         }
 
         // 构建产品实体
@@ -60,7 +62,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         } catch (DuplicateKeyException e) {
             // 兜底：处理竞态窗口中的数据库唯一约束冲突
             log.warn("产品名称冲突（竞态条件触发）: name={}", request.getName());
-            throw new ConflictException("产品名称已存在: " + request.getName());
+            throw new ConflictException("Product name already exists: " + request.getName());
         }
 
         log.info("产品创建成功: id={}, name={}", product.getId(), product.getName());
@@ -102,7 +104,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 1. 查找产品（自定义 XML，确保 UUID TypeHandler 生效）
         Product product = baseMapper.selectProductById(id);
         if (product == null) {
-            throw new NotFoundException("产品不存在: id=" + id);
+            throw new NotFoundException("Product not found: id=" + id);
         }
 
         // 2. 将要更新的字段写入 product（null 字段保持原值，XML 的 <if> 会跳过）
@@ -116,6 +118,48 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         baseMapper.updateProductById(id, product);
 
         log.info("产品更新成功: id={}, name={}", product.getId(), product.getName());
+        return product;
+    }
+
+    /**
+     * 调整产品库存数量
+     * 先读取当前库存进行验证，验证通过后再更新
+     *
+     * @param id      产品ID
+     * @param request 调整请求（quantity可为正数或负数）
+     * @return 调整后的产品实体
+     * @throws NotFoundException 当产品不存在时
+     * @throws BusinessException 当调整后库存小于0时
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Product adjustStock(String id, AdjustStockRequest request) {
+        // 1. 查找产品（自定义 XML，确保 UUID TypeHandler 生效）
+        Product product = baseMapper.selectProductById(id);
+        if (product == null) {
+            throw new NotFoundException("Product not found: id=" + id);
+        }
+
+        // 2. 计算并验证调整后库存
+        int newStock = product.getStock() + request.getQuantity();
+        if (newStock < 0) {
+            throw new BusinessException(
+                    "Insufficient stock, current stock: " + product.getStock() + ", adjustment: " + request.getQuantity()
+            );
+        }
+
+        // 3. 乐观锁更新（WHERE version = 读取时的version，并发冲突时返回 0 行）
+        LocalDateTime now = LocalDateTime.now().withNano(0); // DATETIME 精度到秒
+        int affected = baseMapper.adjustStockById(id, newStock, product.getVersion(), now);
+        if (affected == 0) {
+            // 乐观锁冲突：另一个并发请求已修改库存，本次更新未生效
+            throw new BusinessException("Stock update failed due to concurrent conflict, please retry");
+        }
+
+        // 4. 重新查询以返回数据库实际状态（确保 version 等字段与 DB 完全一致）
+        product = baseMapper.selectProductById(id);
+
+        log.info("产品库存调整成功: id={}, 调整量={}, 当前库存={}", id, request.getQuantity(), newStock);
         return product;
     }
 
