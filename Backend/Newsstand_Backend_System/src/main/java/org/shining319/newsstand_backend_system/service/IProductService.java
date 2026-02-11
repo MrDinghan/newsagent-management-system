@@ -2,6 +2,7 @@ package org.shining319.newsstand_backend_system.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
@@ -42,4 +43,15 @@ public interface IProductService extends IService<Product> {
      * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
      */
     Product updateProduct(String id, UpdateProductRequest request);
+
+    /**
+     * 调整产品库存数量
+     *
+     * @param id      产品ID
+     * @param request 调整请求（quantity可为正数或负数）
+     * @return 调整后的产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     * @throws org.shining319.newsstand_backend_system.exception.BusinessException 当调整后库存小于0时
+     */
+    Product adjustStock(String id, AdjustStockRequest request);
 }

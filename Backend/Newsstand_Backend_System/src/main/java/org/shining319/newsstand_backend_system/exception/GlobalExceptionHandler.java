@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @Author: shining319
@@ -110,14 +108,11 @@ public class GlobalExceptionHandler {
     )
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
-    public Result<Map<String, String>> handleValidationException(MethodArgumentNotValidException e) {
-        Map<String, String> errors = new HashMap<>();
-        e.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-        return Result.fail("参数验证失败", errors);
+    public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
+        String errorMsg = e.getBindingResult().getAllErrors().stream()
+                .map(error -> ((FieldError) error).getField() + ": " + error.getDefaultMessage())
+                .collect(java.util.stream.Collectors.joining("; "));
+        return Result.fail(errorMsg);
     }
 
     /**
@@ -145,17 +140,22 @@ public class GlobalExceptionHandler {
 
 
 
-    @Schema(description = "Parameter validation failure response")
-    public static class ValidationExceptionResult extends Result<Map<String, String>> {
-        @Schema(description = "错误信息", example = "参数验证失败")
+    @Schema(description = "Business logic error response")
+    public static class BusinessExceptionResult extends Result<Void> {
+        @Schema(description = "错误信息", example = "库存不足，当前库存: 2，调整量: -5")
         @Override
         public String getErrorMsg() {
             return super.getErrorMsg();
         }
-        @Schema(description = "字段错误信息",example = "{'name':'不能为空'}")
+    }
+
+    @Schema(description = "Parameter validation failure response")
+    public static class ValidationExceptionResult extends Result<Void> {
+        @Schema(description = "字段错误信息，格式：field1: message1; field2: message2",
+                example = "name: must not be blank; price: must be greater than 0")
         @Override
-        public Map<String, String> getData() {
-            return super.getData();
+        public String getErrorMsg() {
+            return super.getErrorMsg();
         }
     }
 
