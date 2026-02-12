@@ -2,7 +2,7 @@ import { defineConfig } from "orval";
 
 export default defineConfig({
   api: {
-    input: "http://localhost:3000/swagger.json",
+    input: "http://34.194.175.52:8080/v3/api-docs",
     output: {
       mode: "tags",
       target: "./src/api/endpoints",
