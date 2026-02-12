@@ -756,6 +756,73 @@ class ProductServiceImplTest {
         // Verify: 验证使用指定阈值15
         verify(productMapper, times(1)).selectLowStockProductsWithHandler(any(Page.class), eq(15));
     }
+
+    // ==================== B1.6.2: 根据ID查询产品详情Service测试 ====================
+
+    @Test
+    @DisplayName("根据ID查询产品 - 成功")
+    void testGetProductById_Success() {
+        // Given: Mock返回产品
+        Product product = new Product();
+        product.setId("test-uuid-id");
+        product.setName("人民日报");
+        product.setType("NEWSPAPER");
+        product.setPrice(new BigDecimal("2.50"));
+        product.setStock(100);
+        product.setVersion(0);
+        product.setDeleted(false);
+
+        when(productMapper.selectProductById("test-uuid-id")).thenReturn(product);
+
+        // When
+        Product result = productService.getProductById("test-uuid-id");
+
+        // Then
+        assertNotNull(result);
+        assertEquals("test-uuid-id", result.getId());
+        assertEquals("人民日报", result.getName());
+        assertEquals("NEWSPAPER", result.getType());
+        assertEquals(new BigDecimal("2.50"), result.getPrice());
+        assertEquals(100, result.getStock());
+
+        // Verify
+        verify(productMapper, times(1)).selectProductById("test-uuid-id");
+    }
+
+    @Test
+    @DisplayName("根据ID查询产品 - 产品不存在")
+    void testGetProductById_NotFound() {
+        // Given: Mock返回null（产品不存在）
+        when(productMapper.selectProductById("non-existent-id")).thenReturn(null);
+
+        // When & Then: 应该抛出NotFoundException
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+            productService.getProductById("non-existent-id");
+        });
+
+        assertTrue(exception.getMessage().contains("Product not found"));
+        assertTrue(exception.getMessage().contains("non-existent-id"));
+
+        // Verify
+        verify(productMapper, times(1)).selectProductById("non-existent-id");
+    }
+
+    @Test
+    @DisplayName("根据ID查询产品 - 产品已删除")
+    void testGetProductById_DeletedProduct() {
+        // Given: Mock返回null（已删除的产品会被过滤掉）
+        when(productMapper.selectProductById("deleted-id")).thenReturn(null);
+
+        // When & Then: 应该抛出NotFoundException
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+            productService.getProductById("deleted-id");
+        });
+
+        assertTrue(exception.getMessage().contains("Product not found"));
+
+        // Verify
+        verify(productMapper, times(1)).selectProductById("deleted-id");
+    }
 }
 
 

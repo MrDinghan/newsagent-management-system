@@ -68,6 +68,16 @@ public interface IProductService extends IService<Product> {
     void deleteProduct(String id);
 
     /**
+     * 根据ID查询产品详情
+     * 返回指定产品的完整信息，不包含已删除的产品
+     *
+     * @param id 产品ID
+     * @return 产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     */
+    Product getProductById(String id);
+
+    /**
      * 查询低库存产品列表（带分页）
      * 返回库存<=threshold的产品，按库存升序排列
      *
