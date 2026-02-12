@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 public class ProductController {
 
     private final IProductService productService;
+
     @Autowired
     public ProductController(IProductService productService) {
         this.productService = productService;
@@ -264,6 +265,50 @@ public class ProductController {
     }
 
     /**
+     * 删除产品（软删除）
+     *
+     * @param id 产品ID
+     * @return 200 OK
+     */
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Delete product",
+            description = "Soft delete a product by ID. Deleting an already deleted product returns success " +
+                    "(idempotent)."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = VoidResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "id",
+                    description = "Product ID (UUID)",
+                    example = "018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e",
+                    required = true,
+                    schema = @Schema(type = "string", format = "uuid")
+            )
+    })
+    public Result<Void> deleteProduct(@PathVariable String id) {
+        productService.deleteProduct(id);
+        return Result.ok();
+    }
+
+    /**
      * Swagger文档用的自定义响应包装类
      * 用于在OpenAPI文档中正确显示Result<ProductVO>的结构
      */
@@ -299,5 +344,19 @@ public class ProductController {
         public Integer getTotalPages() {
             return super.getTotalPages();
         }
+    }
+
+    /**
+     * Swagger文档用的删除响应包装类
+     * 用于在OpenAPI文档中正确显示Result<Void>的结构
+     */
+    @Schema(description = "Delete product response")
+    private static class VoidResult extends Result<Void> {
+        @Schema(description = "空响应")
+        @Override
+        public Void getData() {
+            return super.getData();
+        }
+
     }
 }

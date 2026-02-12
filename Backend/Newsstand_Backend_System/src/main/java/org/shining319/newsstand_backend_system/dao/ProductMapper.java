@@ -74,4 +74,22 @@ public interface ProductMapper extends BaseMapper<Product> {
             @Param("version") Integer version,
             @Param("updatedAt") java.time.LocalDateTime updatedAt
     );
+
+    /**
+     * 按 ID 查询产品（包括已删除产品，使用自定义 TypeHandler 处理 UUID）
+     * 用于删除操作时检查产品是否存在
+     *
+     * @param id 产品 ID
+     * @return 产品实体，不存在返回 null
+     */
+    Product selectProductByIdIncludeDeleted(@Param("id") String id);
+
+    /**
+     * 按 ID 删除产品（软删除，使用自定义 TypeHandler 处理 UUID）
+     * 设置 deleted = true
+     *
+     * @param id 产品 ID
+     * @return 影响的行数
+     */
+    int deleteProductById(@Param("id") String id);
 }

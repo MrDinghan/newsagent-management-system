@@ -72,5 +72,21 @@
         AND version = #{version}
     </update>
 
+    <!-- 按 ID 查询产品（包括已删除产品），用于删除操作时的存在性检查 -->
+    <select id="selectProductByIdIncludeDeleted" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+    </select>
+
+    <!-- 按 ID 删除产品（软删除），明确指定 UUID TypeHandler -->
+    <update id="deleteProductById">
+        UPDATE products
+        SET deleted = TRUE,
+            updated_at = NOW()
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = FALSE
+    </update>
+
 </mapper>
 

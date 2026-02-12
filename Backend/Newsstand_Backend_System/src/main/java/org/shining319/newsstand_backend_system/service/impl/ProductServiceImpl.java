@@ -164,6 +164,35 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     /**
+     * 删除产品（软删除）
+     * 幂等操作：删除已删除的产品返回成功
+     *
+     * @param id 产品ID
+     * @throws NotFoundException 当产品不存在时
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProduct(String id) {
+        // 1. 先检查产品是否存在（包括已删除的产品）
+        // 使用自定义 XML 方法，确保 UUID TypeHandler 生效，不受 @TableLogic 过滤影响
+        Product product = baseMapper.selectProductByIdIncludeDeleted(id);
+        if (product == null) {
+            throw new NotFoundException("Product not found: id=" + id);
+        }
+
+        // 2. 幂等处理：如果产品已删除，直接返回成功
+        if (product.getDeleted()) {
+            log.info("产品已删除，幂等返回: id={}", id);
+            return;
+        }
+
+        // 3. 执行软删除（使用自定义 XML 方法，确保 TypeHandler 生效）
+        baseMapper.deleteProductById(id);
+
+        log.info("产品删除成功: id={}, name={}", id, product.getName());
+    }
+
+    /**
      * 检查产品名称是否已存在（只检查未删除的产品）
      *
      * @param name 产品名称

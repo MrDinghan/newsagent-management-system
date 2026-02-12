@@ -469,4 +469,72 @@ class ProductControllerTest {
 
         verify(productService, never()).adjustStock(any(), any());
     }
+
+    // ==================== B1.5.1: 删除产品API单元测试 ====================
+
+    @Test
+    @DisplayName("删除产品 - 成功（200 OK）")
+    void testDeleteProduct_Success() throws Exception {
+        // Given: Service正常执行删除（无异常表示成功）
+        doNothing().when(productService).deleteProduct("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e");
+
+        // When & Then
+        mockMvc.perform(delete("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(jsonPath("$.errorMsg").isEmpty());
+
+        verify(productService, times(1)).deleteProduct("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e");
+    }
+
+    @Test
+    @DisplayName("删除产品 - 产品不存在（404 Not Found）")
+    void testDeleteProduct_NotFound() throws Exception {
+        // Given: Service抛出NotFoundException
+        doThrow(new NotFoundException("Product not found: id=non-existent-id"))
+                .when(productService).deleteProduct("non-existent-id");
+
+        // When & Then
+        mockMvc.perform(delete("/api/products/non-existent-id"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").value("Product not found: id=non-existent-id"));
+
+        verify(productService, times(1)).deleteProduct("non-existent-id");
+    }
+
+    @Test
+    @DisplayName("删除产品 - 幂等性（重复删除已删除产品返回成功）")
+    void testDeleteProduct_Idempotent() throws Exception {
+        // Given: Service层处理幂等性，已删除产品也返回成功（无异常）
+        doNothing().when(productService).deleteProduct("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e");
+
+        // When & Then: 第一次删除
+        mockMvc.perform(delete("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        // When & Then: 第二次删除（幂等）
+        mockMvc.perform(delete("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(productService, times(2)).deleteProduct("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e");
+    }
+
+    @Test
+    @DisplayName("删除产品 - 路径变量ID格式正确传递")
+    void testDeleteProduct_IdPathVariable() throws Exception {
+        // Given
+        doNothing().when(productService).deleteProduct("test-uuid-id");
+
+        // When & Then
+        mockMvc.perform(delete("/api/products/test-uuid-id"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        // Verify: Service收到正确的ID
+        verify(productService, times(1)).deleteProduct("test-uuid-id");
+    }
 }

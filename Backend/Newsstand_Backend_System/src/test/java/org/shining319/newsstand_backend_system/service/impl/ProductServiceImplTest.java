@@ -547,6 +547,67 @@ class ProductServiceImplTest {
         // Verify: 验证selectProductById被调用2次
         verify(productMapper, times(2)).selectProductById(testProduct.getId());
     }
+
+    // ==================== B1.5.2: 删除产品Service测试 ====================
+
+    @Test
+    @DisplayName("删除产品 - 成功")
+    void testDeleteProduct_Success() {
+        // Given: 产品存在且未删除
+        when(productMapper.selectProductByIdIncludeDeleted(testProduct.getId())).thenReturn(testProduct);
+        when(productMapper.deleteProductById(testProduct.getId())).thenReturn(1);
+
+        // When
+        productService.deleteProduct(testProduct.getId());
+
+        // Then: 验证deleteProductById被调用
+        verify(productMapper, times(1)).deleteProductById(testProduct.getId());
+        verify(productMapper, times(1)).selectProductByIdIncludeDeleted(testProduct.getId());
+    }
+
+    @Test
+    @DisplayName("删除产品 - 产品不存在")
+    void testDeleteProduct_NotFound() {
+        // Given: 产品不存在
+        when(productMapper.selectProductByIdIncludeDeleted(testProduct.getId())).thenReturn(null);
+
+        // When & Then: 抛出NotFoundException
+        assertThrows(NotFoundException.class, () -> productService.deleteProduct(testProduct.getId()));
+
+        // Verify: deleteProductById不会被调用
+        verify(productMapper, never()).deleteProductById(any());
+    }
+
+    @Test
+    @DisplayName("删除产品 - 幂等性（重复删除已删除产品）")
+    void testDeleteProduct_Idempotent() {
+        // Given: 产品已删除
+        Product deletedProduct = new Product();
+        deletedProduct.setId(testProduct.getId());
+        deletedProduct.setName("人民日报");
+        deletedProduct.setDeleted(true);
+        when(productMapper.selectProductByIdIncludeDeleted(testProduct.getId())).thenReturn(deletedProduct);
+
+        // When: 重复删除
+        productService.deleteProduct(testProduct.getId());
+
+        // Then: deleteProductById不会被调用（提前返回）
+        verify(productMapper, never()).deleteProductById(any());
+    }
+
+    @Test
+    @DisplayName("删除产品 - 验证日志记录")
+    void testDeleteProduct_Logging() {
+        // Given: 产品存在且未删除
+        when(productMapper.selectProductByIdIncludeDeleted(testProduct.getId())).thenReturn(testProduct);
+        when(productMapper.deleteProductById(testProduct.getId())).thenReturn(1);
+
+        // When
+        productService.deleteProduct(testProduct.getId());
+
+        // Then: 验证方法调用（日志记录无法直接测试，但可以验证行为）
+        verify(productMapper, times(1)).deleteProductById(testProduct.getId());
+    }
 }
 
 

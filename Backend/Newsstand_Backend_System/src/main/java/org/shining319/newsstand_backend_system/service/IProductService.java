@@ -54,4 +54,13 @@ public interface IProductService extends IService<Product> {
      * @throws org.shining319.newsstand_backend_system.exception.BusinessException 当调整后库存小于0时
      */
     Product adjustStock(String id, AdjustStockRequest request);
+
+    /**
+     * 删除产品（软删除）
+     * 幂等操作：删除已删除的产品返回成功
+     *
+     * @param id 产品ID
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     */
+    void deleteProduct(String id);
 }
