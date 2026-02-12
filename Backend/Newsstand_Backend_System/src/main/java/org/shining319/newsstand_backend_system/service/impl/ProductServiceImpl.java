@@ -5,10 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
-import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
-import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
-import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
-import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.*;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.exception.BusinessException;
 import org.shining319.newsstand_backend_system.exception.ConflictException;
@@ -190,6 +187,28 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         baseMapper.deleteProductById(id);
 
         log.info("产品删除成功: id={}, name={}", id, product.getName());
+    }
+
+    /**
+     * 查询低库存产品列表（带分页）
+     * 返回库存<=threshold的产品，按库存升序排列
+     *
+     * @param request 查询请求（包含page, size, threshold）
+     * @return 低库存产品分页结果
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Product> getLowStockProducts(QueryLowStockRequest request) {
+        // 1. 构建分页对象（MyBatis-Plus page从1开始，前端从0开始）
+        Page<Product> page = new Page<>(request.getPage() + 1, request.getSize());
+
+        // 2. 使用自定义分页查询方法（确保 TypeHandler 生效）
+        baseMapper.selectLowStockProductsWithHandler(page, request.getThreshold());
+
+        // 3. 返回分页结果
+        log.info("查询低库存产品: threshold={}, page={}, size={}, total={}",
+                request.getThreshold(), request.getPage(), request.getSize(), page.getTotal());
+        return page;
     }
 
     /**

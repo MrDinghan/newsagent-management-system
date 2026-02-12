@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
 import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
@@ -607,6 +608,153 @@ class ProductServiceImplTest {
 
         // Then: 验证方法调用（日志记录无法直接测试，但可以验证行为）
         verify(productMapper, times(1)).deleteProductById(testProduct.getId());
+    }
+
+    // ==================== B1.6.1: 查询低库存产品Service测试 ====================
+
+    @Test
+    @DisplayName("查询低库存产品 - 成功（有低库存产品）")
+    void testGetLowStockProducts_Success() {
+        // Given: Mock返回低库存产品列表
+        List<Product> lowStockProducts = new ArrayList<>();
+        Product p1 = new Product();
+        p1.setId("product-1");
+        p1.setName("产品A");
+        p1.setType("NEWSPAPER");
+        p1.setPrice(new BigDecimal("2.50"));
+        p1.setStock(5);
+        p1.setVersion(0);
+        p1.setDeleted(false);
+
+        Product p2 = new Product();
+        p2.setId("product-2");
+        p2.setName("产品B");
+        p2.setType("MAGAZINE");
+        p2.setPrice(new BigDecimal("10.00"));
+        p2.setStock(8);
+        p2.setVersion(0);
+        p2.setDeleted(false);
+
+        lowStockProducts.add(p1);
+        lowStockProducts.add(p2);
+
+        // 使用doAnswer来模拟selectLowStockProductsWithHandler的行为
+        doAnswer(invocation -> {
+            Page<Product> page = invocation.getArgument(0);
+            page.setRecords(lowStockProducts);
+            page.setTotal(2);
+            page.setPages(1);
+            return null;
+        }).when(productMapper).selectLowStockProductsWithHandler(any(Page.class), eq(10));
+
+        // When: 使用默认参数查询
+        QueryLowStockRequest request = new QueryLowStockRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setThreshold(10);
+        Page<Product> result = productService.getLowStockProducts(request);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.getRecords().size());
+        assertEquals(2, result.getTotal());
+        assertEquals(5, result.getRecords().get(0).getStock());
+        assertEquals(8, result.getRecords().get(1).getStock());
+
+        // Verify: 验证Mapper被正确调用
+        verify(productMapper, times(1)).selectLowStockProductsWithHandler(any(Page.class), eq(10));
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - 空结果（没有低库存产品）")
+    void testGetLowStockProducts_EmptyResult() {
+        // Given: Mock返回空列表
+        doAnswer(invocation -> {
+            Page<Product> page = invocation.getArgument(0);
+            page.setRecords(new ArrayList<>());
+            page.setTotal(0);
+            return null;
+        }).when(productMapper).selectLowStockProductsWithHandler(any(Page.class), anyInt());
+
+        // When
+        QueryLowStockRequest request = new QueryLowStockRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setThreshold(5);
+        Page<Product> result = productService.getLowStockProducts(request);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getRecords().isEmpty());
+
+        // Verify
+        verify(productMapper, times(1)).selectLowStockProductsWithHandler(any(Page.class), eq(5));
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - 分页查询")
+    void testGetLowStockProducts_Pagination() {
+        // Given
+        List<Product> products = new ArrayList<>();
+        for (int i = 0; i < 15; i++) {
+            Product p = new Product();
+            p.setId("product-" + i);
+            p.setName("产品" + i);
+            p.setStock(i);
+            products.add(p);
+        }
+
+        doAnswer(invocation -> {
+            Page<Product> page = invocation.getArgument(0);
+            page.setRecords(products.subList(0, 10));
+            page.setTotal(15);
+            page.setPages(2);
+            return null;
+        }).when(productMapper).selectLowStockProductsWithHandler(any(Page.class), eq(20));
+
+        // When: 查询第一页，每页10条
+        QueryLowStockRequest request = new QueryLowStockRequest();
+        request.setPage(0);
+        request.setSize(10);
+        request.setThreshold(20);
+        Page<Product> result = productService.getLowStockProducts(request);
+
+        // Then
+        assertEquals(10, result.getRecords().size());
+        assertEquals(15, result.getTotal());
+        assertEquals(2, result.getPages());
+
+        // Verify: 验证page参数从0转换为1
+        ArgumentCaptor<Page> pageCaptor = ArgumentCaptor.forClass(Page.class);
+        verify(productMapper).selectLowStockProductsWithHandler(pageCaptor.capture(), eq(20));
+        assertEquals(1, pageCaptor.getValue().getCurrent()); // 0 + 1 = 1
+        assertEquals(10, pageCaptor.getValue().getSize());
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - 使用指定阈值")
+    void testGetLowStockProducts_WithThreshold() {
+        // Given
+        doAnswer(invocation -> {
+            Page<Product> page = invocation.getArgument(0);
+            page.setRecords(new ArrayList<>());
+            page.setTotal(0);
+            return null;
+        }).when(productMapper).selectLowStockProductsWithHandler(any(Page.class), eq(15));
+
+        // When: 使用阈值15
+        QueryLowStockRequest request = new QueryLowStockRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setThreshold(15);
+        Page<Product> result = productService.getLowStockProducts(request);
+
+        // Then
+        assertNotNull(result);
+
+        // Verify: 验证使用指定阈值15
+        verify(productMapper, times(1)).selectLowStockProductsWithHandler(any(Page.class), eq(15));
     }
 }
 

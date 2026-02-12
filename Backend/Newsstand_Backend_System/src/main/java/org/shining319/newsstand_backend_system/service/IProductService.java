@@ -4,9 +4,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
+
+import java.util.List;
 
 /**
  * @Author: shining319
@@ -63,4 +66,13 @@ public interface IProductService extends IService<Product> {
      * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
      */
     void deleteProduct(String id);
+
+    /**
+     * 查询低库存产品列表（带分页）
+     * 返回库存<=threshold的产品，按库存升序排列
+     *
+     * @param request 查询请求（包含page, size, threshold）
+     * @return 低库存产品分页结果
+     */
+    Page<Product> getLowStockProducts(QueryLowStockRequest request);
 }
