@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.shining319.newsstand_backend_system.entity.Product;
 
+import java.util.List;
+
 /**
  * @Author: shining319
  * @Date: 2026/2/8
@@ -92,4 +94,17 @@ public interface ProductMapper extends BaseMapper<Product> {
      * @return 影响的行数
      */
     int deleteProductById(@Param("id") String id);
+
+    /**
+     * 查询低库存产品列表（带分页）
+     * 返回库存<=threshold且未删除的产品，按库存升序排列
+     *
+     * @param page 分页对象
+     * @param threshold 库存阈值
+     * @return 低库存产品分页结果
+     */
+    IPage<Product> selectLowStockProductsWithHandler(
+            Page<Product> page,
+            @Param("threshold") Integer threshold
+    );
 }

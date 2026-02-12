@@ -39,6 +39,8 @@ public class SwaggerConfig {
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.adjustStock", Set.of("409"));
         // deleteProduct 不进行唯一性检查，ConflictException(409) 不会发生
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.deleteProduct", Set.of("409","400"));
+        // getLowStockProducts 不进行产品查找或唯一性检查，NotFoundException(404) 和 ConflictException(409) 不会发生
+        RESPONSE_CODE_EXCLUSIONS.put("ProductController.getLowStockProducts", Set.of("404","409"));
 
         // 可以继续添加其他接口的排除规则
         // RESPONSE_CODE_EXCLUSIONS.put("UserController.login", Set.of("404"));

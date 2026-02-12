@@ -88,5 +88,14 @@
         AND deleted = FALSE
     </update>
 
+    <!-- 查询低库存产品列表（带分页），按库存升序排列，使用 BaseResultMap 确保 TypeHandler 生效 -->
+    <select id="selectLowStockProductsWithHandler" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE deleted = FALSE
+          AND stock &lt;= #{threshold}
+        ORDER BY stock ASC
+    </select>
+
 </mapper>
 

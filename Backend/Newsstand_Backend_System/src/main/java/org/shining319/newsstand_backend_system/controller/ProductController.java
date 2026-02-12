@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.dto.response.ProductVO;
@@ -309,6 +310,76 @@ public class ProductController {
     }
 
     /**
+     * 查询低库存产品列表
+     *
+     * @param request 查询请求
+     * @return 低库存产品列表
+     */
+    @GetMapping("/low-stock")
+    @Operation(
+            summary = "Query low stock products with pagination",
+            description = "Query products with stock below or equal to the specified threshold. " +
+                    "Returns products sorted by stock in ascending order. " +
+                    "Default threshold is 10 if not specified. " +
+                    "**IMPORTANT: page parameter starts from 0 (0 = first page)**"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Query successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = LowStockProductListResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "page",
+                    description = "**Page number (starts from 0, 0 means first page)**",
+                    example = "0",
+                    schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")
+            ),
+            @Parameter(
+                    name = "size",
+                    description = "Page size (1-100)",
+                    example = "20",
+                    schema = @Schema(type = "integer", minimum = "1", maximum = "100", defaultValue = "20")
+            ),
+            @Parameter(
+                    name = "threshold",
+                    description = "Stock threshold (optional, default 10, returns products with stock <= this value)",
+                    example = "10",
+                    schema = @Schema(type = "integer", minimum = "0", defaultValue = "10")
+            )
+    })
+    public Result<List<ProductVO>> getLowStockProducts(@Valid QueryLowStockRequest request) {
+        // 1. 调用Service执行分页查询
+        Page<Product> pageResult = productService.getLowStockProducts(request);
+
+        // 2. 转换Entity为VO（隐藏内部字段）
+        List<ProductVO> voList = pageResult.getRecords()
+                .stream()
+                .map(ProductVO::fromEntity)
+                .collect(Collectors.toList());
+
+        // 3. 包装为Result，返回data、total和totalPages
+        return Result.ok(
+                voList,                        // data: 产品列表
+                pageResult.getTotal(),         // total: 总记录数
+                (int) pageResult.getPages()    // totalPages: 总页数
+        );
+    }
+
+    /**
      * Swagger文档用的自定义响应包装类
      * 用于在OpenAPI文档中正确显示Result<ProductVO>的结构
      */
@@ -358,5 +429,30 @@ public class ProductController {
             return super.getData();
         }
 
+    }
+
+    /**
+     * Swagger文档用的低库存查询响应包装类
+     * 用于在OpenAPI文档中正确显示Result<List<ProductVO>>的结构
+     */
+    @Schema(description = "Low stock products response")
+    private static class LowStockProductListResult extends Result<List<ProductVO>> {
+        @Schema(description = "低库存产品列表")
+        @Override
+        public List<ProductVO> getData() {
+            return super.getData();
+        }
+
+        @Schema(description = "总记录数", example = "50")
+        @Override
+        public Long getTotal() {
+            return super.getTotal();
+        }
+
+        @Schema(description = "总页数", example = "3")
+        @Override
+        public Integer getTotalPages() {
+            return super.getTotalPages();
+        }
     }
 }

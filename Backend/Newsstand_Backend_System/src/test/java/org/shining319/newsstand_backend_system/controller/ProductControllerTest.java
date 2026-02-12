@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
 import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
@@ -536,5 +537,186 @@ class ProductControllerTest {
 
         // Verify: Service收到正确的ID
         verify(productService, times(1)).deleteProduct("test-uuid-id");
+    }
+
+    // ==================== B1.6.1: 查询低库存产品API单元测试 ====================
+
+    @Test
+    @DisplayName("查询低库存产品 - 成功（有低库存产品）")
+    void testGetLowStockProducts_Success() throws Exception {
+        // Given: Mock返回低库存产品列表
+        List<Product> lowStockProducts = new ArrayList<>();
+        Product p1 = new Product();
+        p1.setId("product-1");
+        p1.setName("产品A");
+        p1.setType("NEWSPAPER");
+        p1.setPrice(new BigDecimal("2.50"));
+        p1.setStock(5);
+        p1.setDeleted(false);
+
+        Product p2 = new Product();
+        p2.setId("product-2");
+        p2.setName("产品B");
+        p2.setType("MAGAZINE");
+        p2.setPrice(new BigDecimal("10.00"));
+        p2.setStock(8);
+        p2.setDeleted(false);
+
+        lowStockProducts.add(p1);
+        lowStockProducts.add(p2);
+
+        Page<Product> page = new Page<>(1, 20);
+        page.setRecords(lowStockProducts);
+        page.setTotal(2);
+        page.setPages(1);
+
+        when(productService.getLowStockProducts(any(QueryLowStockRequest.class))).thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get("/api/products/low-stock")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("threshold", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].name").value("产品A"))
+                .andExpect(jsonPath("$.data[0].stock").value(5))
+                .andExpect(jsonPath("$.data[1].name").value("产品B"))
+                .andExpect(jsonPath("$.data[1].stock").value(8))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(productService, times(1)).getLowStockProducts(any(QueryLowStockRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - 空结果（没有低库存产品）")
+    void testGetLowStockProducts_EmptyResult() throws Exception {
+        // Given: Mock返回空列表
+        Page<Product> page = new Page<>(1, 20);
+        page.setRecords(new ArrayList<>());
+        page.setTotal(0);
+        page.setPages(0);
+
+        when(productService.getLowStockProducts(any(QueryLowStockRequest.class))).thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get("/api/products/low-stock")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("threshold", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0));
+
+        verify(productService, times(1)).getLowStockProducts(any(QueryLowStockRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - 分页查询")
+    void testGetLowStockProducts_Pagination() throws Exception {
+        // Given
+        List<Product> products = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            Product p = new Product();
+            p.setId("product-" + i);
+            p.setName("产品" + i);
+            p.setType("NEWSPAPER");
+            p.setPrice(new BigDecimal("2.50"));
+            p.setStock(i);
+            p.setDeleted(false);
+            products.add(p);
+        }
+
+        Page<Product> page = new Page<>(1, 10);
+        page.setRecords(products);
+        page.setTotal(25);
+        page.setPages(3);
+
+        when(productService.getLowStockProducts(any(QueryLowStockRequest.class))).thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get("/api/products/low-stock")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("threshold", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.total").value(25))
+                .andExpect(jsonPath("$.totalPages").value(3));
+
+        verify(productService, times(1)).getLowStockProducts(any(QueryLowStockRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - 使用默认参数")
+    void testGetLowStockProducts_DefaultParameters() throws Exception {
+        // Given: 不传page、size、threshold参数，使用默认值
+        Page<Product> page = new Page<>(1, 20);
+        page.setRecords(new ArrayList<>());
+        page.setTotal(0);
+        page.setPages(0);
+
+        when(productService.getLowStockProducts(any(QueryLowStockRequest.class))).thenReturn(page);
+
+        // When & Then: 不传任何参数
+        mockMvc.perform(get("/api/products/low-stock"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        // Verify: Service被调用，request使用默认值
+        verify(productService, times(1)).getLowStockProducts(any(QueryLowStockRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - page<0（Bean Validation）")
+    void testGetLowStockProducts_InvalidPage() throws Exception {
+        // When & Then: page为负数
+        mockMvc.perform(get("/api/products/low-stock")
+                        .param("page", "-1")
+                        .param("size", "20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        // Verify: Service不会被调用
+        verify(productService, never()).getLowStockProducts(any());
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - size>100（Bean Validation）")
+    void testGetLowStockProducts_InvalidSize() throws Exception {
+        // When & Then: size超过100
+        mockMvc.perform(get("/api/products/low-stock")
+                        .param("page", "0")
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        // Verify: Service不会被调用
+        verify(productService, never()).getLowStockProducts(any());
+    }
+
+    @Test
+    @DisplayName("查询低库存产品 - threshold<0（Bean Validation）")
+    void testGetLowStockProducts_InvalidThreshold() throws Exception {
+        // When & Then: threshold为负数
+        mockMvc.perform(get("/api/products/low-stock")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("threshold", "-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        // Verify: Service不会被调用
+        verify(productService, never()).getLowStockProducts(any());
     }
 }
