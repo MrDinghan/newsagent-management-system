@@ -310,6 +310,51 @@ public class ProductController {
     }
 
     /**
+     * 根据ID查询产品详情
+     *
+     * @param id 产品ID
+     * @return 产品详情
+     */
+    @GetMapping("/{id}")
+    @Operation(
+            summary = "Get product by ID",
+            description = "Get complete product information by ID. " +
+                    "Returns 404 if the product does not exist or has been deleted."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Query successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "id",
+                    description = "Product ID (UUID)",
+                    example = "018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e",
+                    required = true,
+                    schema = @Schema(type = "string", format = "uuid")
+            )
+    })
+    public Result<ProductVO> getProductById(@PathVariable String id) {
+        Product product = productService.getProductById(id);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
      * 查询低库存产品列表
      *
      * @param request 查询请求

@@ -719,4 +719,42 @@ class ProductControllerTest {
         // Verify: Service不会被调用
         verify(productService, never()).getLowStockProducts(any());
     }
+
+    // ==================== B1.6.2: 根据ID查询产品详情API单元测试 ====================
+
+    @Test
+    @DisplayName("根据ID查询产品 - 成功")
+    void testGetProductById_Success() throws Exception {
+        // Given: Mock返回产品
+        Product product = createTestProduct();
+        when(productService.getProductById("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e")).thenReturn(product);
+
+        // When & Then
+        mockMvc.perform(get("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"))
+                .andExpect(jsonPath("$.data.name").value("人民日报"))
+                .andExpect(jsonPath("$.data.type").value("NEWSPAPER"))
+                .andExpect(jsonPath("$.data.price").value(2.50))
+                .andExpect(jsonPath("$.data.stock").value(100));
+
+        verify(productService, times(1)).getProductById("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e");
+    }
+
+    @Test
+    @DisplayName("根据ID查询产品 - 产品不存在")
+    void testGetProductById_NotFound() throws Exception {
+        // Given: Service抛出NotFoundException
+        when(productService.getProductById("non-existent-id"))
+                .thenThrow(new NotFoundException("Product not found: id=non-existent-id"));
+
+        // When & Then
+        mockMvc.perform(get("/api/products/non-existent-id"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        verify(productService, times(1)).getProductById("non-existent-id");
+    }
 }

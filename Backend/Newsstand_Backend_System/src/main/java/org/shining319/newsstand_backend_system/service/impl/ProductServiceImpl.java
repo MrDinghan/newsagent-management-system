@@ -83,6 +83,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         baseMapper.selectPageWithTypeHandler(page, false, type);
 
         // 3. 返回分页结果
+        log.info("查询产品列表: type={}, page={}, size={}, total={}", type, request.getPage(), request.getSize(), page.getTotal());
         return page;
     }
 
@@ -187,6 +188,26 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         baseMapper.deleteProductById(id);
 
         log.info("产品删除成功: id={}, name={}", id, product.getName());
+    }
+
+    /**
+     * 根据ID查询产品详情
+     * 返回指定产品的完整信息，不包含已删除的产品
+     *
+     * @param id 产品ID
+     * @return 产品实体
+     * @throws NotFoundException 当产品不存在时
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Product getProductById(String id) {
+        // 使用自定义 XML 方法，确保 UUID TypeHandler 生效，自动过滤已删除产品
+        Product product = baseMapper.selectProductById(id);
+        if (product == null) {
+            throw new NotFoundException("Product not found: id=" + id);
+        }
+        log.info("查询产品详情: id={}, name={}", id, product.getName());
+        return product;
     }
 
     /**
