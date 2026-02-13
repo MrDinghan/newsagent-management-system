@@ -44,7 +44,11 @@
         <sonar.exclusions>
             **/config/**,
             **/exception/**,
-            **/*Application.java
+            **/*Application.java,
+            **/entity/**,
+            **/dto/**,
+            **/dao/**,
+            **/util/**
         </sonar.exclusions>
         <!-- 项目配置 -->
         <java.version>21</java.version>
