@@ -1,5 +1,6 @@
 import { WarningOutlined } from "@ant-design/icons";
-import { Alert, Badge, Flex } from "antd";
+import { css } from "@emotion/css";
+import { Alert, Badge, Flex, Tag } from "antd";
 import { type FC, useState } from "react";
 
 import { useGetLowStockProducts } from "@/api/endpoints/product-management";
@@ -26,7 +27,9 @@ const LowStockAlert: FC = () => {
         type="success"
         message="All products are well stocked"
         showIcon
-        style={{ marginBottom: 16 }}
+        className={css`
+          margin-bottom: 16px;
+        `}
       />
     );
   }
@@ -37,10 +40,18 @@ const LowStockAlert: FC = () => {
         type="warning"
         showIcon
         icon={<WarningOutlined />}
-        style={{ marginBottom: 16 }}
-        message={`${products.length} product${products.length > 1 ? "s" : ""} with low stock (≤ ${LOW_STOCK_THRESHOLD})`}
+        className={css`
+          margin-bottom: 16px;
+        `}
+        title={`${products.length} product${products.length > 1 ? "s" : ""} with low stock (≤ ${LOW_STOCK_THRESHOLD})`}
         description={
-          <Flex wrap gap={8} style={{ marginTop: 4 }}>
+          <Flex
+            wrap
+            gap={8}
+            className={css`
+              margin-top: 4px;
+            `}
+          >
             {products.map((p) => (
               <Badge
                 key={p.id}
@@ -49,28 +60,21 @@ const LowStockAlert: FC = () => {
                 color={p.stock === 0 ? "#f5222d" : "#faad14"}
                 size="small"
               >
-                <div
+                <Tag
                   onClick={() => setSelectedProductId(p.id ?? null)}
-                  style={{
-                    padding: "4px 12px",
-                    background: "#fff",
-                    border: "1px solid #d9d9d9",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontSize: 13,
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#faad14";
-                    e.currentTarget.style.background = "#fffbe6";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#d9d9d9";
-                    e.currentTarget.style.background = "#fff";
-                  }}
+                  className={css`
+                    cursor: pointer;
+                    border: 1px solid #d9d9d9;
+                    background: #fff;
+                    transition: all 0.2s;
+                    &:hover {
+                      border-color: #faad14;
+                      background: #fffbe6;
+                    }
+                  `}
                 >
                   {p.name}
-                </div>
+                </Tag>
               </Badge>
             ))}
           </Flex>

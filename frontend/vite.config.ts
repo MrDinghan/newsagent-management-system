@@ -19,7 +19,7 @@ export default defineConfig({
   },
   server: {
     open: true,
-    port: 5000,
+    port: 5001,
     proxy: {
       "/api": {
         target: "http://34.194.175.52:8080",

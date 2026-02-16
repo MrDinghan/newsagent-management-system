@@ -1,3 +1,4 @@
+import { css } from "@emotion/css";
 import { useQueryClient } from "@tanstack/react-query";
 import { App, Form, Input, InputNumber, Modal, Select } from "antd";
 import { type FC, useEffect } from "react";
@@ -106,7 +107,9 @@ const EditProductModal: FC<EditProductModalProps> = ({
         >
           <InputNumber
             prefix="€"
-            style={{ width: "100%" }}
+            className={css`
+              width: 100%;
+            `}
             precision={2}
             placeholder="0.00"
           />

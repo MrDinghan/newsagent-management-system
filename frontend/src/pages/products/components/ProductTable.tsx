@@ -1,4 +1,5 @@
 import { DeleteOutlined, EditOutlined, StockOutlined } from "@ant-design/icons";
+import { css } from "@emotion/css";
 import { Button, Popconfirm, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TablePaginationConfig } from "antd/es/table";
@@ -48,7 +49,17 @@ const ProductTable: FC<ProductTableProps> = ({
       title: "Stock",
       dataIndex: "stock",
       render: (stock: number) => (
-        <span style={{ color: stock === 0 ? "red" : undefined }}>{stock}</span>
+        <span
+          className={
+            stock === 0
+              ? css`
+                  color: red;
+                `
+              : undefined
+          }
+        >
+          {stock}
+        </span>
       ),
     },
     {

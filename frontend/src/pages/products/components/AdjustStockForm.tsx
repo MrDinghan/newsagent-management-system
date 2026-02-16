@@ -1,3 +1,4 @@
+import { css } from "@emotion/css";
 import type { FormInstance } from "antd";
 import { Form, InputNumber, Typography } from "antd";
 import { type FC } from "react";
@@ -38,7 +39,9 @@ const AdjustStockForm: FC<AdjustStockFormProps> = ({
           ]}
         >
           <InputNumber
-            style={{ width: "100%" }}
+            className={css`
+              width: 100%;
+            `}
             precision={0}
             placeholder="e.g. 10 or -5"
             onChange={(value) => onQuantityChange(currentStock, value as number | null)}

@@ -1,4 +1,5 @@
 import { PlusOutlined } from "@ant-design/icons";
+import { css } from "@emotion/css";
 import { useQueryClient } from "@tanstack/react-query";
 import { App, Button, Select, Space, Tabs } from "antd";
 import { type FC, useState } from "react";
@@ -78,11 +79,11 @@ const ProductsPage: FC = () => {
             children: (
               <>
                 <Space
-                  style={{
-                    marginBottom: 16,
-                    display: "flex",
-                    justifyContent: "space-between",
-                  }}
+                  className={css`
+                    margin-bottom: 16px;
+                    display: flex;
+                    justify-content: space-between;
+                  `}
                 >
                   <Select
                     value={typeFilter}
@@ -91,7 +92,9 @@ const ProductsPage: FC = () => {
                       setPage(0);
                     }}
                     options={typeOptions}
-                    style={{ width: 150 }}
+                    className={css`
+                      width: 150px;
+                    `}
                   />
                   <Button
                     type="primary"
