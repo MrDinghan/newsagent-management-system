@@ -22,20 +22,15 @@ export interface ConflictExceptionResult {
 }
 
 /**
- * 字段错误信息
- */
-export type ValidationExceptionResultData = {[key: string]: string};
-
-/**
  * Parameter validation failure response
  */
 export interface ValidationExceptionResult {
   /** 操作是否成功 */
   success?: boolean;
-  /** 错误信息 */
+  /** 字段错误信息，格式：field1: message1; field2: message2 */
   errorMsg?: string;
-  /** 字段错误信息 */
-  data?: ValidationExceptionResultData;
+  /** 响应数据 */
+  data?: unknown;
   /** 数据总数量 */
   total?: number;
   /** 总页数 */
@@ -189,6 +184,34 @@ export interface CreateProductRequest {
 }
 
 /**
+ * Adjust product stock request
+ */
+export interface AdjustStockRequest {
+  /**
+   * 库存调整量（正数为增加，负数为减少）
+   * @minimum -9999
+   * @maximum 9999
+   */
+  quantity: number;
+}
+
+/**
+ * Business logic error response
+ */
+export interface BusinessExceptionResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 响应数据 */
+  data?: unknown;
+  /** 数据总数量 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
+/**
  * 产品类型（可选，不传则查询全部）
  */
 export type QueryProductRequestType = typeof QueryProductRequestType[keyof typeof QueryProductRequestType];
@@ -234,6 +257,59 @@ export interface ProductListResult {
   totalPages?: number;
 }
 
+/**
+ * Query low stock products request
+ */
+export interface QueryLowStockRequest {
+  /**
+   * 页码（从0开始，0表示第一页）
+   * @minimum 0
+   */
+  page?: number;
+  /**
+   * 每页数量（1-100之间）
+   * @minimum 1
+   * @maximum 100
+   */
+  size?: number;
+  /**
+   * 库存阈值（可选，默认10，返回库存<=此值的产品）
+   * @minimum 0
+   */
+  threshold?: number;
+}
+
+/**
+ * Low stock products response
+ */
+export interface LowStockProductListResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 低库存产品列表 */
+  data?: ProductVO[];
+  /** 总记录数 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
+/**
+ * Delete product response
+ */
+export interface VoidResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  data?: unknown;
+  /** 数据总数量 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
 export type QueryProductsParams = {
 request: QueryProductRequest;
 /**
@@ -260,4 +336,24 @@ export const QueryProductsType = {
   NEWSPAPER: 'NEWSPAPER',
   MAGAZINE: 'MAGAZINE',
 } as const;
+
+export type GetLowStockProductsParams = {
+request: QueryLowStockRequest;
+/**
+ * **Page number (starts from 0, 0 means first page)**
+ * @minimum 0
+ */
+page?: number;
+/**
+ * Page size (1-100)
+ * @minimum 1
+ * @maximum 100
+ */
+size?: number;
+/**
+ * Stock threshold (optional, default 10, returns products with stock <= this value)
+ * @minimum 0
+ */
+threshold?: number;
+};
 

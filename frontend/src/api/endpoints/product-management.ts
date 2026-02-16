@@ -26,20 +26,124 @@ import {
 
 import { request } from '../request';
 import type {
+  AdjustStockRequest,
+  BusinessExceptionResult,
   ConflictExceptionResult,
   CreateProductRequest,
+  GetLowStockProductsParams,
+  LowStockProductListResult,
   NotFoundExceptionResult,
   ProductListResult,
   ProductVOResult,
   QueryProductsParams,
   RuntimeExceptionResult,
   UpdateProductRequest,
-  ValidationExceptionResult
+  ValidationExceptionResult,
+  VoidResult
 } from './newsstandManagementSystemAPI.schemas';
 
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+/**
+ * Get complete product information by ID. Returns 404 if the product does not exist or has been deleted.
+ * @summary Get product by ID
+ */
+export const getGetProductByIdUrl = (id: string,) => {
+
+
+  
+
+  return `/api/products/${id}`
+}
+
+export const getProductById = async (id: string, options?: RequestInit): Promise<ProductVOResult> => {
+  
+  return request<ProductVOResult>(getGetProductByIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetProductByIdQueryKey = (id: string,) => {
+    return [
+    `/api/products/${id}`
+    ] as const;
+    }
+
+    
+export const getGetProductByIdQueryOptions = <TData = Awaited<ReturnType<typeof getProductById>>, TError = NotFoundExceptionResult | RuntimeExceptionResult>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductById>>, TError, TData>>, request?: SecondParameter<typeof request>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProductByIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductById>>> = ({ signal }) => getProductById(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProductById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProductByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getProductById>>>
+export type GetProductByIdQueryError = NotFoundExceptionResult | RuntimeExceptionResult
+
+
+export function useGetProductById<TData = Awaited<ReturnType<typeof getProductById>>, TError = NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProductById>>,
+          TError,
+          Awaited<ReturnType<typeof getProductById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProductById<TData = Awaited<ReturnType<typeof getProductById>>, TError = NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProductById>>,
+          TError,
+          Awaited<ReturnType<typeof getProductById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProductById<TData = Awaited<ReturnType<typeof getProductById>>, TError = NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductById>>, TError, TData>>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get product by ID
+ */
+
+export function useGetProductById<TData = Awaited<ReturnType<typeof getProductById>>, TError = NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductById>>, TError, TData>>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProductByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 
 
 
@@ -114,6 +218,76 @@ export const useUpdateProduct = <TError = ValidationExceptionResult | NotFoundEx
         TContext
       > => {
       return useMutation(getUpdateProductMutationOptions(options), queryClient);
+    }
+    /**
+ * Soft delete a product by ID. Deleting an already deleted product returns success (idempotent).
+ * @summary Delete product
+ */
+export const getDeleteProductUrl = (id: string,) => {
+
+
+  
+
+  return `/api/products/${id}`
+}
+
+export const deleteProduct = async (id: string, options?: RequestInit): Promise<VoidResult> => {
+  
+  return request<VoidResult>(getDeleteProductUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteProductMutationOptions = <TError = NotFoundExceptionResult | RuntimeExceptionResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProduct>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof request>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProduct>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteProduct'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProduct>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteProduct(id,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteProductMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProduct>>>
+    
+    export type DeleteProductMutationError = NotFoundExceptionResult | RuntimeExceptionResult
+
+    /**
+ * @summary Delete product
+ */
+export const useDeleteProduct = <TError = NotFoundExceptionResult | RuntimeExceptionResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProduct>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteProduct>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteProductMutationOptions(options), queryClient);
     }
     /**
  * Query product list with pagination and optional type filter. Returns non-deleted products ordered by creation time descending. **IMPORTANT: page parameter starts from 0 (0 = first page)**
@@ -292,4 +466,181 @@ export const useCreateProduct = <TError = ValidationExceptionResult | ConflictEx
       > => {
       return useMutation(getCreateProductMutationOptions(options), queryClient);
     }
+    /**
+ * Adjust product stock by the specified quantity. Positive quantity increases stock, negative quantity decreases stock. Stock cannot be adjusted below 0.
+ * @summary Adjust product stock
+ */
+export const getAdjustStockUrl = (id: string,) => {
+
+
+  
+
+  return `/api/products/${id}/adjust-stock`
+}
+
+export const adjustStock = async (id: string,
+    adjustStockRequest: AdjustStockRequest, options?: RequestInit): Promise<ProductVOResult> => {
+  
+  return request<ProductVOResult>(getAdjustStockUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adjustStockRequest,)
+  }
+);}
+
+
+
+
+export const getAdjustStockMutationOptions = <TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adjustStock>>, TError,{id: string;data: AdjustStockRequest}, TContext>, request?: SecondParameter<typeof request>}
+): UseMutationOptions<Awaited<ReturnType<typeof adjustStock>>, TError,{id: string;data: AdjustStockRequest}, TContext> => {
+
+const mutationKey = ['adjustStock'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adjustStock>>, {id: string;data: AdjustStockRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adjustStock(id,data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdjustStockMutationResult = NonNullable<Awaited<ReturnType<typeof adjustStock>>>
+    export type AdjustStockMutationBody = AdjustStockRequest
+    export type AdjustStockMutationError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult
+
+    /**
+ * @summary Adjust product stock
+ */
+export const useAdjustStock = <TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adjustStock>>, TError,{id: string;data: AdjustStockRequest}, TContext>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adjustStock>>,
+        TError,
+        {id: string;data: AdjustStockRequest},
+        TContext
+      > => {
+      return useMutation(getAdjustStockMutationOptions(options), queryClient);
+    }
+    /**
+ * Query products with stock below or equal to the specified threshold. Returns products sorted by stock in ascending order. Default threshold is 10 if not specified. **IMPORTANT: page parameter starts from 0 (0 = first page)**
+ * @summary Query low stock products with pagination
+ */
+export const getGetLowStockProductsUrl = (params: GetLowStockProductsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
     
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/products/low-stock?${stringifiedParams}` : `/api/products/low-stock`
+}
+
+export const getLowStockProducts = async (params: GetLowStockProductsParams, options?: RequestInit): Promise<LowStockProductListResult> => {
+  
+  return request<LowStockProductListResult>(getGetLowStockProductsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetLowStockProductsQueryKey = (params?: GetLowStockProductsParams,) => {
+    return [
+    `/api/products/low-stock`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetLowStockProductsQueryOptions = <TData = Awaited<ReturnType<typeof getLowStockProducts>>, TError = ValidationExceptionResult | RuntimeExceptionResult>(params: GetLowStockProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLowStockProducts>>, TError, TData>>, request?: SecondParameter<typeof request>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLowStockProductsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLowStockProducts>>> = ({ signal }) => getLowStockProducts(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLowStockProducts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLowStockProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getLowStockProducts>>>
+export type GetLowStockProductsQueryError = ValidationExceptionResult | RuntimeExceptionResult
+
+
+export function useGetLowStockProducts<TData = Awaited<ReturnType<typeof getLowStockProducts>>, TError = ValidationExceptionResult | RuntimeExceptionResult>(
+ params: GetLowStockProductsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLowStockProducts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLowStockProducts>>,
+          TError,
+          Awaited<ReturnType<typeof getLowStockProducts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLowStockProducts<TData = Awaited<ReturnType<typeof getLowStockProducts>>, TError = ValidationExceptionResult | RuntimeExceptionResult>(
+ params: GetLowStockProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLowStockProducts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLowStockProducts>>,
+          TError,
+          Awaited<ReturnType<typeof getLowStockProducts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLowStockProducts<TData = Awaited<ReturnType<typeof getLowStockProducts>>, TError = ValidationExceptionResult | RuntimeExceptionResult>(
+ params: GetLowStockProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLowStockProducts>>, TError, TData>>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Query low stock products with pagination
+ */
+
+export function useGetLowStockProducts<TData = Awaited<ReturnType<typeof getLowStockProducts>>, TError = ValidationExceptionResult | RuntimeExceptionResult>(
+ params: GetLowStockProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLowStockProducts>>, TError, TData>>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLowStockProductsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
