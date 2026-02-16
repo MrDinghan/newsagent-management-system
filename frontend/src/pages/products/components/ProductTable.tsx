@@ -1,8 +1,4 @@
-import {
-  DeleteOutlined,
-  EditOutlined,
-  StockOutlined,
-} from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, StockOutlined } from "@ant-design/icons";
 import { Button, Popconfirm, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TablePaginationConfig } from "antd/es/table";

@@ -1,9 +1,15 @@
-import { Descriptions, Modal, Spin, Tag } from "antd";
-import { type FC } from "react";
+import { Button, Descriptions, Modal, Space, Spin, Tag } from "antd";
+import { type FC, useEffect, useMemo, useState } from "react";
 
-import { useGetProductById } from "@/api/endpoints/product-management";
+import {
+  getGetProductByIdQueryKey,
+  useGetProductById,
+} from "@/api/endpoints/product-management";
 import { productTypeColors, productTypeLabels } from "@/constants/product";
 import { formatDateTime } from "@/utils/format";
+
+import { useAdjustStockForm } from "../hooks/useAdjustStockForm";
+import AdjustStockForm from "./AdjustStockForm";
 
 interface ProductDetailModalProps {
   open: boolean;
@@ -16,40 +22,103 @@ const ProductDetailModal: FC<ProductDetailModalProps> = ({
   productId,
   onClose,
 }) => {
+  const [showAdjustStock, setShowAdjustStock] = useState(false);
+
   const { data, isLoading } = useGetProductById(productId ?? "", {
     query: { enabled: !!productId },
   });
 
   const product = data?.data;
 
+  const extraInvalidateKeys = useMemo(
+    () => (productId ? [getGetProductByIdQueryKey(productId)] : []),
+    [productId],
+  );
+
+  const { form, preview, isPending, handleQuantityChange, handleSubmit, reset } =
+    useAdjustStockForm({
+      onSuccess: () => setShowAdjustStock(false),
+      extraInvalidateKeys,
+    });
+
+  useEffect(() => {
+    if (open) {
+      setShowAdjustStock(false);
+      reset();
+    }
+  }, [open, reset]);
+
+  const handleCancel = () => {
+    if (showAdjustStock) {
+      setShowAdjustStock(false);
+      reset();
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <Modal
-      title="Product Details"
+      title={showAdjustStock ? "Adjust Stock" : "Product Details"}
       open={open}
-      onCancel={onClose}
-      footer={null}
+      onCancel={handleCancel}
+      footer={
+        showAdjustStock ? (
+          <Space>
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button
+              type="primary"
+              onClick={() => handleSubmit(product?.id)}
+              loading={isPending}
+            >
+              OK
+            </Button>
+          </Space>
+        ) : null
+      }
     >
       {isLoading ? (
         <Spin style={{ display: "block", textAlign: "center", padding: 24 }} />
       ) : product ? (
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="Name">{product.name}</Descriptions.Item>
-          <Descriptions.Item label="Type">
-            <Tag color={productTypeColors[product.type ?? ""]}>
-              {productTypeLabels[product.type ?? ""] ?? product.type}
-            </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Price">
-            €{product.price?.toFixed(2)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Stock">{product.stock}</Descriptions.Item>
-          <Descriptions.Item label="Created At">
-            {formatDateTime(product.createdAt)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Updated At">
-            {formatDateTime(product.updatedAt)}
-          </Descriptions.Item>
-        </Descriptions>
+        showAdjustStock ? (
+          <AdjustStockForm
+            form={form}
+            productName={product.name ?? ""}
+            currentStock={product.stock ?? 0}
+            preview={preview}
+            onQuantityChange={handleQuantityChange}
+          />
+        ) : (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Name">{product.name}</Descriptions.Item>
+            <Descriptions.Item label="Type">
+              <Tag color={productTypeColors[product.type ?? ""]}>
+                {productTypeLabels[product.type ?? ""] ?? product.type}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Price">
+              €{product.price?.toFixed(2)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Stock">
+              <Space>
+                {product.stock}
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => setShowAdjustStock(true)}
+                >
+                  Adjust Stock
+                </Button>
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Created At">
+              {formatDateTime(product.createdAt)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Updated At">
+              {formatDateTime(product.updatedAt)}
+            </Descriptions.Item>
+          </Descriptions>
+        )
       ) : null}
     </Modal>
   );
