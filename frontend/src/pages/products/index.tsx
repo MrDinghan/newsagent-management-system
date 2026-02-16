@@ -1,5 +1,11 @@
-import { EditOutlined, PlusOutlined, StockOutlined } from "@ant-design/icons";
-import { Button, Select, Space, Table, Tag } from "antd";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  StockOutlined,
+} from "@ant-design/icons";
+import { useQueryClient } from "@tanstack/react-query";
+import { App, Button, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { type FC, useState } from "react";
 
@@ -7,7 +13,11 @@ import type {
   ProductVO,
   QueryProductsType,
 } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
-import { useQueryProducts } from "@/api/endpoints/product-management";
+import {
+  getQueryProductsQueryKey,
+  useDeleteProduct,
+  useQueryProducts,
+} from "@/api/endpoints/product-management";
 
 import AdjustStockModal from "./components/AdjustStockModal";
 import CreateProductModal from "./components/CreateProductModal";
@@ -26,6 +36,23 @@ const ProductsPage: FC = () => {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState<QueryProductsType | "">("");
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
+  const deleteMutation = useDeleteProduct();
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          message.success("Product deleted successfully");
+          queryClient.invalidateQueries({
+            queryKey: getQueryProductsQueryKey(),
+          });
+        },
+      },
+    );
+  };
 
   const columns: ColumnsType<ProductVO> = [
     {
@@ -71,6 +98,17 @@ const ProductsPage: FC = () => {
           >
             Adjust Stock
           </Button>
+          <Popconfirm
+            title="Delete Product"
+            description={`Are you sure you want to delete "${record.name}"?`}
+            onConfirm={() => record.id && handleDelete(record.id)}
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              Delete
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
