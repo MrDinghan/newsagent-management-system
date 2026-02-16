@@ -2,11 +2,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { App, Form, Input, InputNumber, Modal, Select } from "antd";
 import { type FC } from "react";
 
-import { CreateProductRequestType } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
 import {
+  getGetLowStockProductsQueryKey,
   getQueryProductsQueryKey,
   useCreateProduct,
 } from "@/api/endpoints/product-management";
+import { productTypeLabels } from "@/constants/product";
 
 interface CreateProductModalProps {
   open: boolean;
@@ -28,6 +29,9 @@ const CreateProductModal: FC<CreateProductModalProps> = ({ open, onClose }) => {
           message.success("Product created successfully");
           queryClient.invalidateQueries({
             queryKey: getQueryProductsQueryKey(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: getGetLowStockProductsQueryKey(),
           });
           form.resetFields();
           onClose();
@@ -67,14 +71,13 @@ const CreateProductModal: FC<CreateProductModalProps> = ({ open, onClose }) => {
           label="Type"
           rules={[{ required: true, message: "Please select product type" }]}
         >
-          <Select placeholder="Select type">
-            <Select.Option value={CreateProductRequestType.NEWSPAPER}>
-              Newspaper
-            </Select.Option>
-            <Select.Option value={CreateProductRequestType.MAGAZINE}>
-              Magazine
-            </Select.Option>
-          </Select>
+          <Select
+            placeholder="Select type"
+            options={Object.entries(productTypeLabels).map(([value, label]) => ({
+              label,
+              value,
+            }))}
+          />
         </Form.Item>
 
         <Form.Item

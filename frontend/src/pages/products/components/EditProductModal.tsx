@@ -2,14 +2,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { App, Form, Input, InputNumber, Modal, Select } from "antd";
 import { type FC, useEffect } from "react";
 
-import type {
-  ProductVO,
-  UpdateProductRequestType,
-} from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
+import type { ProductVO } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
 import {
+  getGetLowStockProductsQueryKey,
   getQueryProductsQueryKey,
   useUpdateProduct,
 } from "@/api/endpoints/product-management";
+import { productTypeLabels } from "@/constants/product";
 
 interface EditProductModalProps {
   open: boolean;
@@ -48,6 +47,9 @@ const EditProductModal: FC<EditProductModalProps> = ({
           queryClient.invalidateQueries({
             queryKey: getQueryProductsQueryKey(),
           });
+          queryClient.invalidateQueries({
+            queryKey: getGetLowStockProductsQueryKey(),
+          });
           onClose();
         },
       },
@@ -82,10 +84,10 @@ const EditProductModal: FC<EditProductModalProps> = ({
         >
           <Select
             placeholder="Select type"
-            options={[
-              { label: "Newspaper", value: "NEWSPAPER" as UpdateProductRequestType },
-              { label: "Magazine", value: "MAGAZINE" as UpdateProductRequestType },
-            ]}
+            options={Object.entries(productTypeLabels).map(([value, label]) => ({
+              label,
+              value,
+            }))}
           />
         </Form.Item>
 

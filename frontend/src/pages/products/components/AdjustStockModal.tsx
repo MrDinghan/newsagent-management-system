@@ -4,6 +4,7 @@ import { type FC, useEffect, useState } from "react";
 
 import type { ProductVO } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
 import {
+  getGetLowStockProductsQueryKey,
   getQueryProductsQueryKey,
   useAdjustStock,
 } from "@/api/endpoints/product-management";
@@ -52,6 +53,9 @@ const AdjustStockModal: FC<AdjustStockModalProps> = ({
           message.success("Stock adjusted successfully");
           queryClient.invalidateQueries({
             queryKey: getQueryProductsQueryKey(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: getGetLowStockProductsQueryKey(),
           });
           onClose();
         },
