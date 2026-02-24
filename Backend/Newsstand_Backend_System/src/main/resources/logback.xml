@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 引入Spring Boot默认配置 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <!-- 控制台输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Spring Profile支持 -->
+    <!-- 日志级别：OFF > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <!-- MyBatis-Plus SQL 日志 - 开发环境显示详细 SQL -->
+        <logger name="org.shining319.newsstand_backend_system.dao" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <!-- MyBatis-Plus SQL 日志 - 测试环境显示 SQL -->
+        <logger name="org.shining319.newsstand_backend_system.dao" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <!-- MyBatis-Plus SQL 日志 - 生产环境关闭 SQL 日志 -->
+        <logger name="org.shining319.newsstand_backend_system.dao" level="WARN"/>
+    </springProfile>
+
+    <!-- 特定包的日志级别 -->
+    <!-- <logger name="com.example.myapp" level="DEBUG"/> -->
+    <!-- <logger name="org.springframework.web" level="INFO"/> -->
+    <!-- <logger name="org.hibernate" level="INFO"/> -->
+
+</configuration>

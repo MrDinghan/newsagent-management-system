@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.shining319.newsstand_backend_system.dao.ProductMapper">
+
+    <!-- 自定义 ResultMap，明确指定 TypeHandler -->
+    <resultMap id="BaseResultMap" type="org.shining319.newsstand_backend_system.entity.Product" autoMapping="true">
+        <id column="id" property="id" typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="price" property="price"/>
+        <result column="stock" property="stock"/>
+        <result column="version" property="version"/>
+        <result column="deleted" property="deleted"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 自定义 INSERT 语句，明确指定 TypeHandler -->
+    <insert id="insertProduct" parameterType="org.shining319.newsstand_backend_system.entity.Product">
+        INSERT INTO products (id, name, type, price, stock, deleted)
+        VALUES (
+            #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+            #{name},
+            #{type},
+            #{price},
+            #{stock},
+            #{deleted}
+        )
+    </insert>
+
+    <!-- 自定义分页查询，使用 BaseResultMap 确保 TypeHandler 生效 -->
+    <select id="selectPageWithTypeHandler" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE deleted = #{deleted}
+        <if test="type != null and type != ''">
+            AND type = #{type}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 按 ID 查询单个产品，明确指定 UUID TypeHandler -->
+    <select id="selectProductById" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = false
+    </select>
+
+    <!-- 按 ID 更新产品基本信息，动态 SET 跳过 null 字段，明确指定 UUID TypeHandler -->
+    <update id="updateProductById">
+        UPDATE products
+        <set>
+            <if test="product.name != null">name = #{product.name},</if>
+            <if test="product.type != null">type = #{product.type},</if>
+            <if test="product.price != null">price = #{product.price},</if>
+            updated_at = #{product.updatedAt}
+        </set>
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = false
+    </update>
+
+    <!-- 按 ID 调整库存数量（乐观锁），明确指定 UUID TypeHandler -->
+    <!-- WHERE 包含 version = #{version}，并发冲突时返回 0 行 -->
+    <update id="adjustStockById">
+        UPDATE products
+        SET stock = #{newStock},
+            version = version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = false
+        AND version = #{version}
+    </update>
+
+    <!-- 按 ID 查询产品（包括已删除产品），用于删除操作时的存在性检查 -->
+    <select id="selectProductByIdIncludeDeleted" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+    </select>
+
+    <!-- 按 ID 删除产品（软删除），明确指定 UUID TypeHandler -->
+    <update id="deleteProductById">
+        UPDATE products
+        SET deleted = TRUE,
+            updated_at = NOW()
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+        AND deleted = FALSE
+    </update>
+
+    <!-- 查询低库存产品列表（带分页），按库存升序排列，使用 BaseResultMap 确保 TypeHandler 生效 -->
+    <select id="selectLowStockProductsWithHandler" resultMap="BaseResultMap">
+        SELECT id, name, type, price, stock, version, deleted, created_at, updated_at
+        FROM products
+        WHERE deleted = FALSE
+          AND stock &lt;= #{threshold}
+        ORDER BY stock ASC
+    </select>
+
+</mapper>
+

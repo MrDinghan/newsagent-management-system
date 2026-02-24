@@ -1,0 +1,49 @@
+{
+  "name": "newsstand-system-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "generate:api": "orval",
+    "deploy": "./build_and_deploy.sh nms-frontend latest ./aws-shining319.pem 34.194.175.52 ec2-user /home/ec2-user/nms-system/frontend"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@emotion/css": "^11.13.5",
+    "@tanstack/react-query": "^5.90.20",
+    "antd": "^6.2.3",
+    "axios": "^1.13.4",
+    "dayjs": "^1.11.19",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.13.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react-swc": "^4.1.0",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "globals": "^16.4.0",
+    "install": "^0.13.0",
+    "npm": "^11.9.0",
+    "orval": "^8.2.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "vite": "npm:rolldown-vite@7.1.14",
+    "vite-plugin-pages": "^0.33.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@7.1.14"
+    }
+  }
+}

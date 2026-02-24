@@ -1,0 +1,88 @@
+package org.shining319.newsstand_backend_system.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
+import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
+import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
+import org.shining319.newsstand_backend_system.entity.Product;
+
+import java.util.List;
+
+/**
+ * @Author: shining319
+ * @Date: 2026/2/9
+ * @Description: 产品服务接口
+ * 继承MyBatis-Plus的IService，提供标准CRUD方法
+ **/
+public interface IProductService extends IService<Product> {
+
+    /**
+     * 创建产品
+     *
+     * @param request 创建产品请求
+     * @return 创建的产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.ConflictException 当产品名称已存在时
+     */
+    Product createProduct(CreateProductRequest request);
+
+    /**
+     * 分页查询产品列表
+     * 不返回已删除产品，按创建时间倒序排列
+     *
+     * @param request 查询请求（包含page, size, type）
+     * @return MyBatis-Plus分页对象
+     */
+    Page<Product> queryProducts(QueryProductRequest request);
+
+    /**
+     * 更新产品信息（不包含库存）
+     *
+     * @param id      产品ID
+     * @param request 更新请求（name, type, price）
+     * @return 更新后的产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     */
+    Product updateProduct(String id, UpdateProductRequest request);
+
+    /**
+     * 调整产品库存数量
+     *
+     * @param id      产品ID
+     * @param request 调整请求（quantity可为正数或负数）
+     * @return 调整后的产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     * @throws org.shining319.newsstand_backend_system.exception.BusinessException 当调整后库存小于0时
+     */
+    Product adjustStock(String id, AdjustStockRequest request);
+
+    /**
+     * 删除产品（软删除）
+     * 幂等操作：删除已删除的产品返回成功
+     *
+     * @param id 产品ID
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     */
+    void deleteProduct(String id);
+
+    /**
+     * 根据ID查询产品详情
+     * 返回指定产品的完整信息，不包含已删除的产品
+     *
+     * @param id 产品ID
+     * @return 产品实体
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     */
+    Product getProductById(String id);
+
+    /**
+     * 查询低库存产品列表（带分页）
+     * 返回库存<=threshold的产品，按库存升序排列
+     *
+     * @param request 查询请求（包含page, size, threshold）
+     * @return 低库存产品分页结果
+     */
+    Page<Product> getLowStockProducts(QueryLowStockRequest request);
+}

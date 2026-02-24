@@ -1,0 +1,110 @@
+package org.shining319.newsstand_backend_system.dao;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.shining319.newsstand_backend_system.entity.Product;
+
+import java.util.List;
+
+/**
+ * @Author: shining319
+ * @Date: 2026/2/8
+ * @Description: 产品Mapper接口
+ **/
+@Mapper
+public interface ProductMapper extends BaseMapper<Product> {
+    // 继承 BaseMapper，自动获得 CRUD 方法
+
+    /**
+     * 插入产品（使用自定义 TypeHandler 处理 UUID）
+     *
+     * @param product 产品实体
+     * @return 影响的行数
+     */
+    int insertProduct(Product product);
+
+    /**
+     * 分页查询产品（使用自定义 TypeHandler 处理 UUID）
+     *
+     * @param page 分页对象
+     * @param deleted 是否已删除
+     * @param type 产品类型（可选）
+     * @return 分页结果
+     */
+    IPage<Product> selectPageWithTypeHandler(
+            Page<Product> page,
+            @Param("deleted") Boolean deleted,
+            @Param("type") String type
+    );
+
+    /**
+     * 按 ID 查询产品（使用自定义 TypeHandler 处理 UUID）
+     *
+     * @param id 产品 ID
+     * @return 产品实体，不存在或已删除返回 null
+     */
+    Product selectProductById(@Param("id") String id);
+
+    /**
+     * 按 ID 更新产品基本信息（使用自定义 TypeHandler 处理 UUID，动态 SET 跳过 null 字段）
+     *
+     * @param id      产品 ID
+     * @param product 包含待更新字段的产品实体（null 字段不更新）
+     * @return 影响的行数
+     */
+    int updateProductById(
+            @Param("id") String id,
+            @Param("product") Product product
+    );
+
+    /**
+     * 按 ID 调整库存数量（乐观锁，使用自定义 TypeHandler 处理 UUID）
+     * WHERE 包含 version 校验，并发修改时返回 0 行
+     *
+     * @param id        产品 ID
+     * @param newStock  调整后的库存量
+     * @param version   当前版本号（乐观锁）
+     * @param updatedAt 更新时间
+     * @return 影响的行数，0 表示乐观锁冲突
+     */
+    int adjustStockById(
+            @Param("id") String id,
+            @Param("newStock") Integer newStock,
+            @Param("version") Integer version,
+            @Param("updatedAt") java.time.LocalDateTime updatedAt
+    );
+
+    /**
+     * 按 ID 查询产品（包括已删除产品，使用自定义 TypeHandler 处理 UUID）
+     * 用于删除操作时检查产品是否存在
+     *
+     * @param id 产品 ID
+     * @return 产品实体，不存在返回 null
+     */
+    Product selectProductByIdIncludeDeleted(@Param("id") String id);
+
+    /**
+     * 按 ID 删除产品（软删除，使用自定义 TypeHandler 处理 UUID）
+     * 设置 deleted = true
+     *
+     * @param id 产品 ID
+     * @return 影响的行数
+     */
+    int deleteProductById(@Param("id") String id);
+
+    /**
+     * 查询低库存产品列表（带分页）
+     * 返回库存<=threshold且未删除的产品，按库存升序排列
+     *
+     * @param page 分页对象
+     * @param threshold 库存阈值
+     * @return 低库存产品分页结果
+     */
+    IPage<Product> selectLowStockProductsWithHandler(
+            Page<Product> page,
+            @Param("threshold") Integer threshold
+    );
+}

@@ -1,8 +1,8 @@
-/.idea/.gitignore
-/.idea/AugmentWebviewStateStore.xml
-/.idea/compiler.xml
-/.idea/material_theme_project_new.xml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/newsagent-management-system.iml
-/.idea/vcs.xml
+/.idea/*
+/Backend/Backend.iml
+/Backend/docs/
+/.claude/
+/.augment/
+/tasks/
+
+/frontend/CLAUDE.md

@@ -1,0 +1,503 @@
+package org.shining319.newsstand_backend_system.controller;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
+import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
+import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
+import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
+import org.shining319.newsstand_backend_system.dto.response.ProductVO;
+import org.shining319.newsstand_backend_system.dto.response.Result;
+import org.shining319.newsstand_backend_system.entity.Product;
+import org.shining319.newsstand_backend_system.exception.GlobalExceptionHandler;
+import org.shining319.newsstand_backend_system.service.IProductService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * @Author: shining319
+ * @Date: 2026/2/9
+ * @Description: 产品管理控制器
+ **/
+@RestController
+@RequestMapping("/api/products")
+@Tag(name = "Product Management", description = "Product management related interfaces")
+public class ProductController {
+
+    private final IProductService productService;
+
+    @Autowired
+    public ProductController(IProductService productService) {
+        this.productService = productService;
+    }
+
+    /**
+     * 创建产品
+     *
+     * @param request 创建产品请求
+     * @return 创建的产品信息
+     */
+    @PostMapping
+    @Operation(
+            summary = "Create product",
+            description = "Create a new newspaper or magazine product, the product name cannot be repeated"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Created successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed (field validation errors)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Create product request body",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = CreateProductRequest.class)
+            )
+    )
+    public Result<ProductVO> createProduct(@Valid @RequestBody CreateProductRequest request) {
+        Product product = productService.createProduct(request);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
+     * 分页查询产品列表
+     *
+     * @param request 查询请求
+     * @return 产品列表
+     */
+    @GetMapping
+    @Operation(
+            summary = "Query product list with pagination",
+            description = "Query product list with pagination and optional type filter. " +
+                    "Returns non-deleted products ordered by creation time descending. " +
+                    "**IMPORTANT: page parameter starts from 0 (0 = first page)**"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Query successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductListResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed (field validation errors)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "page",
+                    description = "**Page number (starts from 0, 0 means first page)**",
+                    example = "0",
+                    schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")
+            ),
+            @Parameter(
+                    name = "size",
+                    description = "Page size (1-100)",
+                    example = "20",
+                    schema = @Schema(type = "integer", minimum = "1", maximum = "100", defaultValue = "20")
+            ),
+            @Parameter(
+                    name = "type",
+                    description = "Product type (optional, query all if not specified)",
+                    example = "NEWSPAPER",
+                    schema = @Schema(type = "string", allowableValues = {"NEWSPAPER", "MAGAZINE"})
+            )
+    })
+    public Result<List<ProductVO>> queryProducts(@Valid QueryProductRequest request) {
+        // 1. 调用Service执行分页查询
+        Page<Product> pageResult = productService.queryProducts(request);
+
+        // 2. 转换Entity为VO（隐藏内部字段）
+        List<ProductVO> voList = pageResult.getRecords()
+                .stream()
+                .map(ProductVO::fromEntity)
+                .collect(Collectors.toList());
+
+        // 3. 包装为Result，返回data、total和totalPages
+        return Result.ok(
+                voList,                        // data: 产品列表
+                pageResult.getTotal(),         // total: 总记录数
+                (int) pageResult.getPages()    // totalPages: 总页数
+        );
+    }
+
+    /**
+     * 更新产品信息（不包含库存）
+     *
+     * @param id      产品ID
+     * @param request 更新请求
+     * @return 更新后的产品信息
+     */
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Update product",
+            description = "Update product name, type and price. Stock adjustment is handled by a separate endpoint."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Update product request body",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = UpdateProductRequest.class)
+            )
+    )
+    public Result<ProductVO> updateProduct(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateProductRequest request) {
+        Product product = productService.updateProduct(id, request);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
+     * 调整产品库存
+     *
+     * @param id      产品ID
+     * @param request 调整请求
+     * @return 调整后的产品信息
+     */
+    @PostMapping("/{id}/adjust-stock")
+    @Operation(
+            summary = "Adjust product stock",
+            description = "Adjust product stock by the specified quantity. " +
+                    "Positive quantity increases stock, negative quantity decreases stock. " +
+                    "Stock cannot be adjusted below 0."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Stock adjusted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Insufficient stock (BusinessException) or field validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.BusinessExceptionResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Adjust stock request body",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = AdjustStockRequest.class)
+            )
+    )
+    public Result<ProductVO> adjustStock(
+            @PathVariable String id,
+            @Valid @RequestBody AdjustStockRequest request) {
+        Product product = productService.adjustStock(id, request);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
+     * 删除产品（软删除）
+     *
+     * @param id 产品ID
+     * @return 200 OK
+     */
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Delete product",
+            description = "Soft delete a product by ID. Deleting an already deleted product returns success " +
+                    "(idempotent)."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = VoidResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "id",
+                    description = "Product ID (UUID)",
+                    example = "018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e",
+                    required = true,
+                    schema = @Schema(type = "string", format = "uuid")
+            )
+    })
+    public Result<Void> deleteProduct(@PathVariable String id) {
+        productService.deleteProduct(id);
+        return Result.ok();
+    }
+
+    /**
+     * 根据ID查询产品详情
+     *
+     * @param id 产品ID
+     * @return 产品详情
+     */
+    @GetMapping("/{id}")
+    @Operation(
+            summary = "Get product by ID",
+            description = "Get complete product information by ID. " +
+                    "Returns 404 if the product does not exist or has been deleted."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Query successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductVOResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "id",
+                    description = "Product ID (UUID)",
+                    example = "018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e",
+                    required = true,
+                    schema = @Schema(type = "string", format = "uuid")
+            )
+    })
+    public Result<ProductVO> getProductById(@PathVariable String id) {
+        Product product = productService.getProductById(id);
+        ProductVO vo = ProductVO.fromEntity(product);
+        return Result.ok(vo);
+    }
+
+    /**
+     * 查询低库存产品列表
+     *
+     * @param request 查询请求
+     * @return 低库存产品列表
+     */
+    @GetMapping("/low-stock")
+    @Operation(
+            summary = "Query low stock products with pagination",
+            description = "Query products with stock below or equal to the specified threshold. " +
+                    "Returns products sorted by stock in ascending order. " +
+                    "Default threshold is 10 if not specified. " +
+                    "**IMPORTANT: page parameter starts from 0 (0 = first page)**"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Query successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = LowStockProductListResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "page",
+                    description = "**Page number (starts from 0, 0 means first page)**",
+                    example = "0",
+                    schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")
+            ),
+            @Parameter(
+                    name = "size",
+                    description = "Page size (1-100)",
+                    example = "20",
+                    schema = @Schema(type = "integer", minimum = "1", maximum = "100", defaultValue = "20")
+            ),
+            @Parameter(
+                    name = "threshold",
+                    description = "Stock threshold (optional, default 10, returns products with stock <= this value)",
+                    example = "10",
+                    schema = @Schema(type = "integer", minimum = "0", defaultValue = "10")
+            )
+    })
+    public Result<List<ProductVO>> getLowStockProducts(@Valid QueryLowStockRequest request) {
+        // 1. 调用Service执行分页查询
+        Page<Product> pageResult = productService.getLowStockProducts(request);
+
+        // 2. 转换Entity为VO（隐藏内部字段）
+        List<ProductVO> voList = pageResult.getRecords()
+                .stream()
+                .map(ProductVO::fromEntity)
+                .collect(Collectors.toList());
+
+        // 3. 包装为Result，返回data、total和totalPages
+        return Result.ok(
+                voList,                        // data: 产品列表
+                pageResult.getTotal(),         // total: 总记录数
+                (int) pageResult.getPages()    // totalPages: 总页数
+        );
+    }
+
+    /**
+     * Swagger文档用的自定义响应包装类
+     * 用于在OpenAPI文档中正确显示Result<ProductVO>的结构
+     */
+    @Schema(description = "Create product responses")
+    private static class ProductVOResult extends Result<ProductVO> {
+        @Schema(description = "产品数据")
+        @Override
+        public ProductVO getData() {
+            return super.getData();
+        }
+    }
+
+    /**
+     * Swagger文档用的分页查询响应包装类
+     * 用于在OpenAPI文档中正确显示Result<List<ProductVO>>的结构
+     */
+    @Schema(description = "Query product response by page")
+    private static class ProductListResult extends Result<List<ProductVO>> {
+        @Schema(description = "产品列表")
+        @Override
+        public List<ProductVO> getData() {
+            return super.getData();
+        }
+
+        @Schema(description = "总记录数", example = "100")
+        @Override
+        public Long getTotal() {
+            return super.getTotal();
+        }
+
+        @Schema(description = "总页数", example = "5")
+        @Override
+        public Integer getTotalPages() {
+            return super.getTotalPages();
+        }
+    }
+
+    /**
+     * Swagger文档用的删除响应包装类
+     * 用于在OpenAPI文档中正确显示Result<Void>的结构
+     */
+    @Schema(description = "Delete product response")
+    private static class VoidResult extends Result<Void> {
+        @Schema(description = "空响应")
+        @Override
+        public Void getData() {
+            return super.getData();
+        }
+
+    }
+
+    /**
+     * Swagger文档用的低库存查询响应包装类
+     * 用于在OpenAPI文档中正确显示Result<List<ProductVO>>的结构
+     */
+    @Schema(description = "Low stock products response")
+    private static class LowStockProductListResult extends Result<List<ProductVO>> {
+        @Schema(description = "低库存产品列表")
+        @Override
+        public List<ProductVO> getData() {
+            return super.getData();
+        }
+
+        @Schema(description = "总记录数", example = "50")
+        @Override
+        public Long getTotal() {
+            return super.getTotal();
+        }
+
+        @Schema(description = "总页数", example = "3")
+        @Override
+        public Integer getTotalPages() {
+            return super.getTotalPages();
+        }
+    }
+}
