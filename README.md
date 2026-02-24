@@ -13,6 +13,15 @@ A full-stack web application for managing newsstand inventory and sales, built w
 
 ---
 
+## Quick Access
+
+| Resource | URL |
+|----------|-----|
+| **Frontend Demo** | http://34.194.175.52/products |
+| **Backend API Docs (Swagger)** | http://34.194.175.52:8080/swagger-ui/index.html |
+
+---
+
 ## Project Overview
 
 ### Product Vision
@@ -180,6 +189,10 @@ Sprint 1 focused on building the foundational product and inventory management c
 | **Backend APIs Delivered** | 7 endpoints |
 | **Frontend Components** | 8 components |
 | **Status** | ✅ Complete |
+
+### Code Quality Report (SonarCloud)
+
+![SonarCloud Snapshot](Backend/docs/sonarcloud-snapshot/sonarcloud-snapshot.png)
 
 ---
 
