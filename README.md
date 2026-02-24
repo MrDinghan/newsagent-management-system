@@ -192,7 +192,7 @@ Sprint 1 focused on building the foundational product and inventory management c
 
 ### Code Quality Report (SonarCloud)
 
-![SonarCloud Snapshot](Backend/docs/sonarcloud-snapshot/sonarcloud-snapshot.png)
+![SonarCloud Snapshot](snapshots/sonarcloud-snapshot/sonarcloud-snapshot.png)
 
 ---
 
