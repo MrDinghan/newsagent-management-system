@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.shining319.newsstand_backend_system.dao.SaleItemMapper">
+
+    <!-- SaleItem ResultMap，明确指定 UUID TypeHandler -->
+    <resultMap id="BaseResultMap" type="org.shining319.newsstand_backend_system.entity.SaleItem" autoMapping="true">
+        <id column="id" property="id"
+            typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="order_id" property="orderId"
+                typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="product_id" property="productId"
+                typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="product_name" property="productName"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="quantity" property="quantity"/>
+        <result column="subtotal" property="subtotal"/>
+    </resultMap>
+
+    <!-- 批量插入销售明细，明确指定 UUID TypeHandler -->
+    <insert id="insertItems">
+        INSERT INTO sale_items (id, order_id, product_id, product_name, unit_price, quantity, subtotal)
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (
+                #{item.id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+                #{item.orderId, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+                #{item.productId, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+                #{item.productName},
+                #{item.unitPrice},
+                #{item.quantity},
+                #{item.subtotal}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 按订单 ID 查询所有明细，明确指定 UUID TypeHandler -->
+    <select id="selectItemsByOrderId" resultMap="BaseResultMap">
+        SELECT id, order_id, product_id, product_name, unit_price, quantity, subtotal
+        FROM sale_items
+        WHERE order_id = #{orderId, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+    </select>
+
+</mapper>

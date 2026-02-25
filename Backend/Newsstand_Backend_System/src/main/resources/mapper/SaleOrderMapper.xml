@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.shining319.newsstand_backend_system.dao.SaleOrderMapper">
+
+    <!-- SaleOrder 基础 ResultMap（不含明细，用于列表查询） -->
+    <resultMap id="BaseResultMap" type="org.shining319.newsstand_backend_system.entity.SaleOrder" autoMapping="true">
+        <id column="id" property="id"
+            typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="item_count" property="itemCount"/>
+        <result column="total_quantity" property="totalQuantity"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!--
+        含明细的 ResultMap（用于订单详情查询）
+        通过 select 子查询复用 SaleItemMapper.selectItemsByOrderId，避免重复定义 ResultMap。
+        column="{orderId=id}" 表示将本行的 id 列值作为 orderId 参数传入子查询。
+    -->
+    <resultMap id="OrderWithItemsResultMap" type="org.shining319.newsstand_backend_system.entity.SaleOrder"
+               extends="BaseResultMap">
+        <collection property="items"
+                    ofType="org.shining319.newsstand_backend_system.entity.SaleItem"
+                    select="org.shining319.newsstand_backend_system.dao.SaleItemMapper.selectItemsByOrderId"
+                    column="{orderId=id}"/>
+    </resultMap>
+
+    <!-- 插入销售订单，明确指定 UUID TypeHandler（created_at 由数据库 DEFAULT CURRENT_TIMESTAMP 自动生成） -->
+    <insert id="insertOrder" parameterType="org.shining319.newsstand_backend_system.entity.SaleOrder">
+        INSERT INTO sale_orders (id, order_number, total_amount, item_count, total_quantity)
+        VALUES (
+            #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+            #{orderNumber},
+            #{totalAmount},
+            #{itemCount},
+            #{totalQuantity}
+        )
+    </insert>
+
+    <!-- 按 ID 查询完整订单（含明细列表），通过子查询加载明细，避免 JOIN 列名歧义 -->
+    <select id="selectOrderWithItems" resultMap="OrderWithItemsResultMap">
+        SELECT id, order_number, total_amount, item_count, total_quantity, created_at
+        FROM sale_orders
+        WHERE id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+    </select>
+
+    <!-- 分页查询销售历史（按时间倒序，支持日期范围筛选） -->
+    <select id="selectOrderPage" resultMap="BaseResultMap">
+        SELECT id, order_number, total_amount, item_count, total_quantity, created_at
+        FROM sale_orders
+        <where>
+            <if test="startDate != null">
+                AND created_at &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND created_at &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>
