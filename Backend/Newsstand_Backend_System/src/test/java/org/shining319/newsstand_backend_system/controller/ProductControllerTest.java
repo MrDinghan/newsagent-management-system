@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
+import org.shining319.newsstand_backend_system.dao.SaleItemMapper;
+import org.shining319.newsstand_backend_system.dao.SaleOrderMapper;
 import org.shining319.newsstand_backend_system.dto.request.AdjustStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
@@ -12,6 +14,7 @@ import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.entity.ProductTypeEnum;
+import org.shining319.newsstand_backend_system.dto.response.StockCheckVO;
 import org.shining319.newsstand_backend_system.exception.BusinessException;
 import org.shining319.newsstand_backend_system.exception.ConflictException;
 import org.shining319.newsstand_backend_system.exception.NotFoundException;
@@ -55,6 +58,12 @@ class ProductControllerTest {
 
     @MockitoBean
     private ProductMapper productMapper;
+
+    @MockitoBean
+    private SaleOrderMapper saleOrderMapper;
+
+    @MockitoBean
+    private SaleItemMapper saleItemMapper;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -756,5 +765,91 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.errorMsg").exists());
 
         verify(productService, times(1)).getProductById("non-existent-id");
+    }
+
+    // ==================== B2.2.1: 库存验证API单元测试 ====================
+
+    @Test
+    @DisplayName("验证库存 - 库存充足（200 OK, available=true）")
+    void testCheckStock_Available() throws Exception {
+        // Given
+        StockCheckVO vo = new StockCheckVO(true, 100);
+        when(productService.checkStock(eq("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"), eq(50))).thenReturn(vo);
+
+        // When & Then
+        mockMvc.perform(get("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e/stock-check")
+                        .param("quantity", "50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.available").value(true))
+                .andExpect(jsonPath("$.data.currentStock").value(100));
+
+        verify(productService, times(1)).checkStock(eq("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"), eq(50));
+    }
+
+    @Test
+    @DisplayName("验证库存 - 库存不足（200 OK, available=false）")
+    void testCheckStock_NotAvailable() throws Exception {
+        // Given
+        StockCheckVO vo = new StockCheckVO(false, 100);
+        when(productService.checkStock(eq("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"), eq(150))).thenReturn(vo);
+
+        // When & Then
+        mockMvc.perform(get("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e/stock-check")
+                        .param("quantity", "150"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.available").value(false))
+                .andExpect(jsonPath("$.data.currentStock").value(100));
+
+        verify(productService, times(1)).checkStock(eq("018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e"), eq(150));
+    }
+
+    @Test
+    @DisplayName("验证库存 - quantity=0（400 BusinessException）")
+    void testCheckStock_InvalidQuantity() throws Exception {
+        // Given: Service抛出BusinessException（quantity=0）
+        when(productService.checkStock(any(), eq(0)))
+                .thenThrow(new BusinessException("Quantity must be greater than 0, but got: 0"));
+
+        // When & Then
+        mockMvc.perform(get("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e/stock-check")
+                        .param("quantity", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").value("Quantity must be greater than 0, but got: 0"));
+
+        verify(productService, times(1)).checkStock(any(), eq(0));
+    }
+
+    @Test
+    @DisplayName("验证库存 - 产品不存在（404 NotFoundException）")
+    void testCheckStock_ProductNotFound() throws Exception {
+        // Given: Service抛出NotFoundException
+        when(productService.checkStock(eq("non-existent-id"), eq(10)))
+                .thenThrow(new NotFoundException("Product not found: id=non-existent-id"));
+
+        // When & Then
+        mockMvc.perform(get("/api/products/non-existent-id/stock-check")
+                        .param("quantity", "10"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").value("Product not found: id=non-existent-id"));
+
+        verify(productService, times(1)).checkStock(eq("non-existent-id"), eq(10));
+    }
+
+    @Test
+    @DisplayName("验证库存 - quantity参数缺失（500，由全局兜底异常处理器处理）")
+    void testCheckStock_MissingQuantityParam() throws Exception {
+        // When & Then: 不传quantity参数时，MissingServletRequestParameterException
+        // 被全局 catch-all @ExceptionHandler(Exception.class) 捕获，返回 500
+        mockMvc.perform(get("/api/products/018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e/stock-check"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        // Verify: Service不会被调用
+        verify(productService, never()).checkStock(any(), any());
     }
 }

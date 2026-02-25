@@ -17,6 +17,7 @@ import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.dto.response.ProductVO;
 import org.shining319.newsstand_backend_system.dto.response.Result;
+import org.shining319.newsstand_backend_system.dto.response.StockCheckVO;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.exception.GlobalExceptionHandler;
 import org.shining319.newsstand_backend_system.service.IProductService;
@@ -425,6 +426,69 @@ public class ProductController {
     }
 
     /**
+     * 验证产品库存是否满足指定数量
+     *
+     * @param id       产品ID
+     * @param quantity 需要的数量
+     * @return 库存验证结果
+     */
+    @GetMapping("/{id}/stock-check")
+    @Operation(
+            summary = "Check product stock availability",
+            description = "Check if the product has sufficient stock for the requested quantity. " +
+                    "Returns available=true if currentStock >= quantity, false otherwise. " +
+                    "Always returns 200 even when stock is insufficient (check the 'available' field)."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Check successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = StockCheckResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - quantity must be greater than 0",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.BusinessExceptionResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Not Found - Product does not exist",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.NotFoundExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "id",
+                    description = "Product ID (UUID)",
+                    example = "018d5e8a-3d8c-7000-8b2f-3e4a5b6c7d8e",
+                    required = true,
+                    schema = @Schema(type = "string", format = "uuid")
+            ),
+            @Parameter(
+                    name = "quantity",
+                    description = "Required quantity to check (must be greater than 0)",
+                    example = "3",
+                    required = true,
+                    schema = @Schema(type = "integer", minimum = "1")
+            )
+    })
+    public Result<StockCheckVO> checkStock(
+            @PathVariable String id,
+            @RequestParam Integer quantity) {
+        StockCheckVO vo = productService.checkStock(id, quantity);
+        return Result.ok(vo);
+    }
+
+    /**
      * Swagger文档用的自定义响应包装类
      * 用于在OpenAPI文档中正确显示Result<ProductVO>的结构
      */
@@ -498,6 +562,19 @@ public class ProductController {
         @Override
         public Integer getTotalPages() {
             return super.getTotalPages();
+        }
+    }
+
+    /**
+     * Swagger文档用的库存验证响应包装类
+     * 用于在OpenAPI文档中正确显示Result<StockCheckVO>的结构
+     */
+    @Schema(description = "Stock check response")
+    private static class StockCheckResult extends Result<StockCheckVO> {
+        @Schema(description = "库存验证结果")
+        @Override
+        public StockCheckVO getData() {
+            return super.getData();
         }
     }
 }
