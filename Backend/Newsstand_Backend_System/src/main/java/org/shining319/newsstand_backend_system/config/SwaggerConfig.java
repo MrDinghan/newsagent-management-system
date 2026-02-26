@@ -46,9 +46,9 @@ public class SwaggerConfig {
         // checkStock 不进行唯一性检查，ConflictException(409) 不会发生
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.checkStock", Set.of("409"));
 
-        // 可以继续添加其他接口的排除规则
-        // RESPONSE_CODE_EXCLUSIONS.put("UserController.login", Set.of("404"));
-        // RESPONSE_CODE_EXCLUSIONS.put("OrderController.createOrder", Set.of("404"));
+        // SaleController 相关接口
+        // createSale 不进行唯一性检查，ConflictException(409) 不会发生
+        RESPONSE_CODE_EXCLUSIONS.put("SaleController.createSale", Set.of("409"));
     }
 
     /**
