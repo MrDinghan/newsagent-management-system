@@ -145,4 +145,21 @@ public class SaleServiceImpl implements ISaleService {
                 orderId, order.getOrderNumber(), totalAmount, itemRequests.size());
         return createdOrder;
     }
+
+    /**
+     * 按 ID 查询销售订单（含明细列表）
+     *
+     * @param id 销售订单 ID
+     * @return 含明细列表的完整销售订单
+     * @throws NotFoundException 当订单不存在时
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public SaleOrder getSaleById(String id) {
+        SaleOrder order = saleOrderMapper.selectOrderWithItems(id);
+        if (order == null) {
+            throw new NotFoundException("Sale order not found: id=" + id);
+        }
+        return order;
+    }
 }

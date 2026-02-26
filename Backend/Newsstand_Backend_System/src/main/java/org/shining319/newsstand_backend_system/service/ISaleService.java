@@ -2,6 +2,7 @@ package org.shining319.newsstand_backend_system.service;
 
 import org.shining319.newsstand_backend_system.dto.request.CreateSaleRequest;
 import org.shining319.newsstand_backend_system.entity.SaleOrder;
+import org.shining319.newsstand_backend_system.exception.NotFoundException;
 
 /**
  * @Author: shining319
@@ -20,4 +21,13 @@ public interface ISaleService {
      * @throws org.shining319.newsstand_backend_system.exception.BusinessException 当某个商品库存不足或乐观锁冲突时
      */
     SaleOrder createSale(CreateSaleRequest request);
+
+    /**
+     * 按 ID 查询销售订单（含明细列表）
+     *
+     * @param id 销售订单 ID
+     * @return 含明细列表的完整销售订单
+     * @throws NotFoundException 当订单不存在时
+     */
+    SaleOrder getSaleById(String id);
 }

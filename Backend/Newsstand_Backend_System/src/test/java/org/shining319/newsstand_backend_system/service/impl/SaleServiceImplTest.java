@@ -407,4 +407,84 @@ class SaleServiceImplTest {
 
         verify(saleOrderMapper, never()).insertOrder(any());
     }
+
+    // ==================== B2.7.1: 获取订单详情 ====================
+
+    @Test
+    @DisplayName("获取订单详情 - 订单存在（含明细列表）")
+    void testGetSaleById_Success() {
+        // Given
+        SaleItem item = new SaleItem();
+        item.setId("item-uuid");
+        item.setOrderId("order-uuid");
+        item.setProductId(PRODUCT_ID_1);
+        item.setProductName("人民日报");
+        item.setUnitPrice(new BigDecimal("2.50"));
+        item.setQuantity(2);
+        item.setSubtotal(new BigDecimal("5.00"));
+
+        SaleOrder order = new SaleOrder();
+        order.setId("order-uuid");
+        order.setOrderNumber(ORDER_NUMBER);
+        order.setTotalAmount(new BigDecimal("5.00"));
+        order.setItemCount(1);
+        order.setTotalQuantity(2);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setItems(List.of(item));
+
+        when(saleOrderMapper.selectOrderWithItems("order-uuid")).thenReturn(order);
+
+        // When
+        SaleOrder result = saleService.getSaleById("order-uuid");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo("order-uuid");
+        assertThat(result.getOrderNumber()).isEqualTo(ORDER_NUMBER);
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("5.00"));
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getProductName()).isEqualTo("人民日报");
+
+        verify(saleOrderMapper, times(1)).selectOrderWithItems("order-uuid");
+    }
+
+    @Test
+    @DisplayName("获取订单详情 - 订单不存在 → NotFoundException")
+    void testGetSaleById_NotFound() {
+        // Given
+        when(saleOrderMapper.selectOrderWithItems("non-existent-id")).thenReturn(null);
+
+        // When & Then
+        assertThatThrownBy(() -> saleService.getSaleById("non-existent-id"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Sale order not found")
+                .hasMessageContaining("non-existent-id");
+
+        verify(saleOrderMapper, times(1)).selectOrderWithItems("non-existent-id");
+    }
+
+    @Test
+    @DisplayName("获取订单详情 - 验证ID正确传递给Mapper")
+    void testGetSaleById_VerifyIdPassedToMapper() {
+        // Given
+        String orderId = "019512f3-a1b2-7000-8c3d-4e5f6a7b8c9d";
+        SaleOrder order = new SaleOrder();
+        order.setId(orderId);
+        order.setOrderNumber(ORDER_NUMBER);
+        order.setTotalAmount(BigDecimal.ZERO);
+        order.setItemCount(0);
+        order.setTotalQuantity(0);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setItems(List.of());
+
+        when(saleOrderMapper.selectOrderWithItems(orderId)).thenReturn(order);
+
+        // When
+        saleService.getSaleById(orderId);
+
+        // Then: 验证Mapper收到正确的ID
+        verify(saleOrderMapper, times(1)).selectOrderWithItems(orderId);
+        // 不应该调用其他Mapper方法
+        verifyNoInteractions(productMapper, saleItemMapper);
+    }
 }

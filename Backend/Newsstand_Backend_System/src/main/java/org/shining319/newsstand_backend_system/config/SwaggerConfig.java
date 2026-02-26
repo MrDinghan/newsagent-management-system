@@ -49,6 +49,8 @@ public class SwaggerConfig {
         // SaleController 相关接口
         // createSale 不进行唯一性检查，ConflictException(409) 不会发生
         RESPONSE_CODE_EXCLUSIONS.put("SaleController.createSale", Set.of("409"));
+        // getSaleById 无请求体验证（无400），无唯一性检查（无409）
+        RESPONSE_CODE_EXCLUSIONS.put("SaleController.getSaleById", Set.of("400", "409"));
     }
 
     /**
