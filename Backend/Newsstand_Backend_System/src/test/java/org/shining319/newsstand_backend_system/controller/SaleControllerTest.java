@@ -24,7 +24,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -396,5 +398,49 @@ class SaleControllerTest {
                 .andExpect(jsonPath("$.errorMsg").value("Duplicate productId found in items, please merge quantities for the same product"));
 
         verify(saleService, times(1)).createSale(any(CreateSaleRequest.class));
+    }
+
+    // ==================== B2.7.1: 获取订单详情 ====================
+
+    @Test
+    @DisplayName("获取订单详情 - 成功（200 OK，返回含明细的订单）")
+    void testGetSaleById_Success() throws Exception {
+        // Given
+        SaleOrder order = buildMockSaleOrder();
+        when(saleService.getSaleById(eq("order-uuid"))).thenReturn(order);
+
+        // When & Then
+        mockMvc.perform(get("/api/sales/order-uuid"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value("order-uuid"))
+                .andExpect(jsonPath("$.data.orderNumber").value("SO20260226143025001"))
+                .andExpect(jsonPath("$.data.totalAmount").value(5.00))
+                .andExpect(jsonPath("$.data.itemCount").value(1))
+                .andExpect(jsonPath("$.data.totalQuantity").value(2))
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items[0].productId").value(PRODUCT_ID_1))
+                .andExpect(jsonPath("$.data.items[0].productName").value("人民日报"))
+                .andExpect(jsonPath("$.data.items[0].unitPrice").value(2.50))
+                .andExpect(jsonPath("$.data.items[0].quantity").value(2))
+                .andExpect(jsonPath("$.data.items[0].subtotal").value(5.00));
+
+        verify(saleService, times(1)).getSaleById("order-uuid");
+    }
+
+    @Test
+    @DisplayName("获取订单详情 - 订单不存在（404 Not Found）")
+    void testGetSaleById_NotFound() throws Exception {
+        // Given
+        when(saleService.getSaleById(eq("non-existent-id")))
+                .thenThrow(new NotFoundException("Sale order not found: id=non-existent-id"));
+
+        // When & Then
+        mockMvc.perform(get("/api/sales/non-existent-id"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").value("Sale order not found: id=non-existent-id"));
+
+        verify(saleService, times(1)).getSaleById("non-existent-id");
     }
 }
