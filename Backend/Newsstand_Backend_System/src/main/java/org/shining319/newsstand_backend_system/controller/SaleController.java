@@ -1,5 +1,6 @@
 package org.shining319.newsstand_backend_system.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.shining319.newsstand_backend_system.dto.request.CreateSaleRequest;
+import org.shining319.newsstand_backend_system.dto.request.QuerySaleHistoryRequest;
 import org.shining319.newsstand_backend_system.dto.response.Result;
 import org.shining319.newsstand_backend_system.dto.response.SaleOrderVO;
 import org.shining319.newsstand_backend_system.entity.SaleOrder;
@@ -22,6 +24,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Author: shining319
@@ -139,6 +144,74 @@ public class SaleController {
     }
 
     /**
+     * 分页查询销售历史
+     *
+     * @param request 查询请求（分页参数和可选日期范围）
+     * @return 分页订单列表（不含明细）
+     */
+    @GetMapping
+    @Operation(
+            summary = "Query sale history with pagination",
+            description = "Query sale order history with pagination and optional date range filter. " +
+                    "Returns orders sorted by creation time descending. " +
+                    "Items (line details) are NOT included in list results; use GET /api/sales/{id} to get details. " +
+                    "**IMPORTANT: page parameter starts from 0 (0 = first page)**"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Query successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = SaleOrderListResult.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - Validation failed (invalid page/size range)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GlobalExceptionHandler.ValidationExceptionResult.class)
+                    )
+            )
+    })
+    @Parameters({
+            @Parameter(
+                    name = "page",
+                    description = "**Page number (starts from 0, 0 means first page)**",
+                    example = "0",
+                    schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")
+            ),
+            @Parameter(
+                    name = "size",
+                    description = "Page size (1-100)",
+                    example = "20",
+                    schema = @Schema(type = "integer", minimum = "1", maximum = "100", defaultValue = "20")
+            ),
+            @Parameter(
+                    name = "startDate",
+                    description = "Start date (inclusive, format: yyyy-MM-dd, optional)",
+                    example = "2026-02-01",
+                    schema = @Schema(type = "string", format = "date")
+            ),
+            @Parameter(
+                    name = "endDate",
+                    description = "End date (inclusive, format: yyyy-MM-dd, optional)",
+                    example = "2026-02-28",
+                    schema = @Schema(type = "string", format = "date")
+            )
+    })
+    public Result<List<SaleOrderVO>> getSaleHistory(@Valid QuerySaleHistoryRequest request) {
+        IPage<SaleOrder> pageResult = saleService.getSaleHistory(request);
+
+        List<SaleOrderVO> voList = pageResult.getRecords().stream()
+                .map(SaleOrderVO::fromEntity)
+                .collect(Collectors.toList());
+
+        return Result.ok(voList, pageResult.getTotal(), (int) pageResult.getPages());
+    }
+
+    /**
      * Swagger文档用的响应包装类
      * 用于在OpenAPI文档中正确显示Result<SaleOrderVO>的结构
      */
@@ -148,6 +221,31 @@ public class SaleController {
         @Override
         public SaleOrderVO getData() {
             return super.getData();
+        }
+    }
+
+    /**
+     * Swagger文档用的分页查询响应包装类
+     * 用于在OpenAPI文档中正确显示Result<List<SaleOrderVO>>的结构
+     */
+    @Schema(description = "Sale history list response")
+    private static class SaleOrderListResult extends Result<List<SaleOrderVO>> {
+        @Schema(description = "销售订单列表（不含明细）")
+        @Override
+        public List<SaleOrderVO> getData() {
+            return super.getData();
+        }
+
+        @Schema(description = "总记录数", example = "100")
+        @Override
+        public Long getTotal() {
+            return super.getTotal();
+        }
+
+        @Schema(description = "总页数", example = "5")
+        @Override
+        public Integer getTotalPages() {
+            return super.getTotalPages();
         }
     }
 }

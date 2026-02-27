@@ -1,5 +1,7 @@
 package org.shining319.newsstand_backend_system.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -7,6 +9,7 @@ import org.shining319.newsstand_backend_system.dao.ProductMapper;
 import org.shining319.newsstand_backend_system.dao.SaleItemMapper;
 import org.shining319.newsstand_backend_system.dao.SaleOrderMapper;
 import org.shining319.newsstand_backend_system.dto.request.CreateSaleRequest;
+import org.shining319.newsstand_backend_system.dto.request.QuerySaleHistoryRequest;
 import org.shining319.newsstand_backend_system.dto.request.SaleItemRequest;
 import org.shining319.newsstand_backend_system.entity.SaleItem;
 import org.shining319.newsstand_backend_system.entity.SaleOrder;
@@ -442,5 +445,153 @@ class SaleControllerTest {
                 .andExpect(jsonPath("$.errorMsg").value("Sale order not found: id=non-existent-id"));
 
         verify(saleService, times(1)).getSaleById("non-existent-id");
+    }
+
+    // ==================== B2.8.1: 查询销售历史 ====================
+
+    /**
+     * 构建分页订单列表（不含明细）
+     */
+    private IPage<SaleOrder> buildMockOrderPage(List<SaleOrder> orders, long total, long pages) {
+        Page<SaleOrder> page = new Page<>();
+        page.setRecords(orders);
+        page.setTotal(total);
+        page.setPages(pages);
+        return page;
+    }
+
+    private SaleOrder buildMockOrderWithoutItems(String id, String orderNumber,
+                                                  BigDecimal totalAmount, int itemCount, int totalQuantity) {
+        SaleOrder order = new SaleOrder();
+        order.setId(id);
+        order.setOrderNumber(orderNumber);
+        order.setTotalAmount(totalAmount);
+        order.setItemCount(itemCount);
+        order.setTotalQuantity(totalQuantity);
+        order.setCreatedAt(LocalDateTime.of(2026, 2, 26, 14, 30, 25));
+        order.setItems(null);  // 列表查询不含明细
+        return order;
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 成功（默认参数，返回分页列表）")
+    void testGetSaleHistory_Success_DefaultParams() throws Exception {
+        // Given
+        SaleOrder order = buildMockOrderWithoutItems(
+                "order-uuid", "SO20260226143025001", new BigDecimal("5.00"), 1, 2);
+        IPage<SaleOrder> mockPage = buildMockOrderPage(List.of(order), 1L, 1L);
+        when(saleService.getSaleHistory(any(QuerySaleHistoryRequest.class))).thenReturn(mockPage);
+
+        // When & Then
+        mockMvc.perform(get("/api/sales"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value("order-uuid"))
+                .andExpect(jsonPath("$.data[0].orderNumber").value("SO20260226143025001"))
+                .andExpect(jsonPath("$.data[0].totalAmount").value(5.00))
+                .andExpect(jsonPath("$.data[0].itemCount").value(1))
+                .andExpect(jsonPath("$.data[0].totalQuantity").value(2))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(saleService, times(1)).getSaleHistory(any(QuerySaleHistoryRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 带日期范围筛选（200 OK）")
+    void testGetSaleHistory_WithDateRange() throws Exception {
+        // Given
+        IPage<SaleOrder> mockPage = buildMockOrderPage(List.of(), 0L, 0L);
+        when(saleService.getSaleHistory(any(QuerySaleHistoryRequest.class))).thenReturn(mockPage);
+
+        // When & Then
+        mockMvc.perform(get("/api/sales")
+                        .param("startDate", "2026-02-01")
+                        .param("endDate", "2026-02-28"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.total").value(0));
+
+        verify(saleService, times(1)).getSaleHistory(any(QuerySaleHistoryRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 带分页参数（200 OK）")
+    void testGetSaleHistory_WithPagination() throws Exception {
+        // Given: size=20, total=60 → pages = ceil(60/20) = 3
+        // 使用 Page(1, 20) 确保 getPages() 计算正确
+        Page<SaleOrder> mockPage = new Page<>(1, 20);
+        mockPage.setRecords(List.of());
+        mockPage.setTotal(60L);
+        when(saleService.getSaleHistory(any(QuerySaleHistoryRequest.class))).thenReturn(mockPage);
+
+        // When & Then
+        mockMvc.perform(get("/api/sales")
+                        .param("page", "1")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.total").value(60))
+                .andExpect(jsonPath("$.totalPages").value(3));
+
+        verify(saleService, times(1)).getSaleHistory(any(QuerySaleHistoryRequest.class));
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 返回空列表（200 OK）")
+    void testGetSaleHistory_EmptyResult() throws Exception {
+        // Given
+        IPage<SaleOrder> mockPage = buildMockOrderPage(List.of(), 0L, 0L);
+        when(saleService.getSaleHistory(any(QuerySaleHistoryRequest.class))).thenReturn(mockPage);
+
+        // When & Then
+        mockMvc.perform(get("/api/sales"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0))
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - page为负数（@Min(0)验证失败）→ 400")
+    void testGetSaleHistory_InvalidPage_Negative() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/sales")
+                        .param("page", "-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        verify(saleService, never()).getSaleHistory(any());
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - size为0（@Min(1)验证失败）→ 400")
+    void testGetSaleHistory_InvalidSize_Zero() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/sales")
+                        .param("size", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        verify(saleService, never()).getSaleHistory(any());
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - size超过100（@Max(100)验证失败）→ 400")
+    void testGetSaleHistory_InvalidSize_TooLarge() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/sales")
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorMsg").exists());
+
+        verify(saleService, never()).getSaleHistory(any());
     }
 }
