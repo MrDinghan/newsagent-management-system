@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 
 /**
@@ -113,6 +114,32 @@ public class GlobalExceptionHandler {
                 .map(error -> ((FieldError) error).getField() + ": " + error.getDefaultMessage())
                 .collect(java.util.stream.Collectors.joining("; "));
         return Result.fail(errorMsg);
+    }
+
+    /**
+     * 处理请求参数类型转换失败异常
+     * 例如：date 参数格式不符合 yyyy-MM-dd，无法转换为 LocalDate
+     *
+     * @param e MethodArgumentTypeMismatchException
+     * @return Result 响应给前端的统一结果
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Request parameter type mismatch (e.g., invalid date format)",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ValidationExceptionResult.class)
+            )
+    )
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Result<Void> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        String msg = "Invalid value '" + e.getValue() + "' for parameter '" + e.getName() + "'";
+        if (e.getRequiredType() != null) {
+            msg += ", expected type: " + e.getRequiredType().getSimpleName();
+        }
+        return Result.fail(msg);
     }
 
     /**
