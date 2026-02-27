@@ -1,10 +1,13 @@
 package org.shining319.newsstand_backend_system.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 import org.shining319.newsstand_backend_system.dao.ProductMapper;
 import org.shining319.newsstand_backend_system.dao.SaleItemMapper;
 import org.shining319.newsstand_backend_system.dao.SaleOrderMapper;
 import org.shining319.newsstand_backend_system.dto.request.CreateSaleRequest;
+import org.shining319.newsstand_backend_system.dto.request.QuerySaleHistoryRequest;
 import org.shining319.newsstand_backend_system.dto.request.SaleItemRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.entity.SaleItem;
@@ -20,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -161,5 +165,28 @@ public class SaleServiceImpl implements ISaleService {
             throw new NotFoundException("Sale order not found: id=" + id);
         }
         return order;
+    }
+
+    /**
+     * 分页查询销售历史（按时间倒序，支持日期范围筛选）
+     *
+     * @param request 查询请求（含分页参数和可选日期范围）
+     * @return 分页订单列表（不含明细）
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public IPage<SaleOrder> getSaleHistory(QuerySaleHistoryRequest request) {
+        // MyBatis-Plus Page 从 1 开始，前端从 0 开始，需 +1 转换
+        Page<SaleOrder> page = new Page<>(request.getPage() + 1, request.getSize());
+
+        // 将 LocalDate 转换为 LocalDateTime，startDate 取当天开始，endDate 取当天结束
+        LocalDateTime startDateTime = request.getStartDate() != null
+                ? request.getStartDate().atStartOfDay()
+                : null;
+        LocalDateTime endDateTime = request.getEndDate() != null
+                ? request.getEndDate().atTime(LocalTime.MAX)
+                : null;
+
+        return saleOrderMapper.selectOrderPage(page, startDateTime, endDateTime);
     }
 }

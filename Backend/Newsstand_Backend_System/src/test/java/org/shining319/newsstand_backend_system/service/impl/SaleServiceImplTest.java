@@ -1,5 +1,7 @@
 package org.shining319.newsstand_backend_system.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +13,7 @@ import org.shining319.newsstand_backend_system.dao.ProductMapper;
 import org.shining319.newsstand_backend_system.dao.SaleItemMapper;
 import org.shining319.newsstand_backend_system.dao.SaleOrderMapper;
 import org.shining319.newsstand_backend_system.dto.request.CreateSaleRequest;
+import org.shining319.newsstand_backend_system.dto.request.QuerySaleHistoryRequest;
 import org.shining319.newsstand_backend_system.dto.request.SaleItemRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.entity.SaleItem;
@@ -20,7 +23,9 @@ import org.shining319.newsstand_backend_system.exception.NotFoundException;
 import org.shining319.newsstand_backend_system.util.OrderNumberGenerator;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -486,5 +491,167 @@ class SaleServiceImplTest {
         verify(saleOrderMapper, times(1)).selectOrderWithItems(orderId);
         // 不应该调用其他Mapper方法
         verifyNoInteractions(productMapper, saleItemMapper);
+    }
+
+    // ==================== B2.8.1: 销售历史查询 ====================
+
+    @Test
+    @DisplayName("查询销售历史 - 无日期筛选，验证分页参数正确传递给Mapper")
+    void testGetSaleHistory_NoDateFilter() {
+        // Given: 默认参数（page=0, size=20），Service 内部转换为 MyBatis-Plus 的 page=1
+        QuerySaleHistoryRequest request = new QuerySaleHistoryRequest();
+        request.setPage(0);
+        request.setSize(20);
+
+        Page<SaleOrder> mockPage = new Page<>(1, 20);
+        mockPage.setRecords(List.of());
+        mockPage.setTotal(0L);
+
+        when(saleOrderMapper.selectOrderPage(any(Page.class), isNull(), isNull()))
+                .thenReturn(mockPage);
+
+        // When
+        IPage<SaleOrder> result = saleService.getSaleHistory(request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getRecords()).isEmpty();
+        assertThat(result.getTotal()).isEqualTo(0L);
+
+        // 验证分页参数：前端 page=0 → MyBatis-Plus page=1
+        ArgumentCaptor<Page<SaleOrder>> pageCaptor = ArgumentCaptor.forClass(Page.class);
+        verify(saleOrderMapper).selectOrderPage(pageCaptor.capture(), isNull(), isNull());
+        assertThat(pageCaptor.getValue().getCurrent()).isEqualTo(1L);
+        assertThat(pageCaptor.getValue().getSize()).isEqualTo(20L);
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 带日期范围，验证 LocalDate 正确转换为 LocalDateTime")
+    void testGetSaleHistory_WithDateRange() {
+        // Given
+        QuerySaleHistoryRequest request = new QuerySaleHistoryRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setStartDate(LocalDate.of(2026, 2, 1));
+        request.setEndDate(LocalDate.of(2026, 2, 28));
+
+        Page<SaleOrder> mockPage = new Page<>(1, 20);
+        mockPage.setRecords(List.of());
+        mockPage.setTotal(0L);
+
+        LocalDateTime expectedStart = LocalDate.of(2026, 2, 1).atStartOfDay();
+        LocalDateTime expectedEnd = LocalDate.of(2026, 2, 28).atTime(LocalTime.MAX);
+
+        when(saleOrderMapper.selectOrderPage(any(Page.class), eq(expectedStart), eq(expectedEnd)))
+                .thenReturn(mockPage);
+
+        // When
+        IPage<SaleOrder> result = saleService.getSaleHistory(request);
+
+        // Then
+        assertThat(result).isNotNull();
+
+        // 验证日期转换：startDate → 00:00:00，endDate → 23:59:59.999...
+        ArgumentCaptor<LocalDateTime> startCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+        ArgumentCaptor<LocalDateTime> endCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(saleOrderMapper).selectOrderPage(any(Page.class), startCaptor.capture(), endCaptor.capture());
+
+        assertThat(startCaptor.getValue()).isEqualTo(LocalDateTime.of(2026, 2, 1, 0, 0, 0));
+        assertThat(endCaptor.getValue().toLocalDate()).isEqualTo(LocalDate.of(2026, 2, 28));
+        assertThat(endCaptor.getValue().toLocalTime()).isEqualTo(LocalTime.MAX);
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 只有 startDate，endDate 为 null")
+    void testGetSaleHistory_OnlyStartDate() {
+        // Given
+        QuerySaleHistoryRequest request = new QuerySaleHistoryRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setStartDate(LocalDate.of(2026, 2, 1));
+        request.setEndDate(null);
+
+        Page<SaleOrder> mockPage = new Page<>(1, 20);
+        mockPage.setRecords(List.of());
+        mockPage.setTotal(0L);
+
+        when(saleOrderMapper.selectOrderPage(any(Page.class), any(LocalDateTime.class), isNull()))
+                .thenReturn(mockPage);
+
+        // When
+        saleService.getSaleHistory(request);
+
+        // Then: 验证 endDate 传 null
+        verify(saleOrderMapper).selectOrderPage(any(Page.class), any(LocalDateTime.class), isNull());
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 第2页（page=1）→ Mapper 收到 current=2")
+    void testGetSaleHistory_SecondPage() {
+        // Given
+        QuerySaleHistoryRequest request = new QuerySaleHistoryRequest();
+        request.setPage(1);
+        request.setSize(10);
+
+        Page<SaleOrder> mockPage = new Page<>(2, 10);
+        mockPage.setRecords(List.of());
+        mockPage.setTotal(25L);
+        mockPage.setPages(3L);
+
+        when(saleOrderMapper.selectOrderPage(any(Page.class), isNull(), isNull()))
+                .thenReturn(mockPage);
+
+        // When
+        IPage<SaleOrder> result = saleService.getSaleHistory(request);
+
+        // Then: 前端 page=1 → MyBatis-Plus page=2
+        ArgumentCaptor<Page<SaleOrder>> pageCaptor = ArgumentCaptor.forClass(Page.class);
+        verify(saleOrderMapper).selectOrderPage(pageCaptor.capture(), isNull(), isNull());
+        assertThat(pageCaptor.getValue().getCurrent()).isEqualTo(2L);
+        assertThat(pageCaptor.getValue().getSize()).isEqualTo(10L);
+        assertThat(result.getTotal()).isEqualTo(25L);
+        assertThat(result.getPages()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("查询销售历史 - 返回订单列表（验证数据正确映射）")
+    void testGetSaleHistory_ReturnsOrders() {
+        // Given
+        SaleOrder order1 = new SaleOrder();
+        order1.setId("order-1");
+        order1.setOrderNumber("SO20260226143025001");
+        order1.setTotalAmount(new BigDecimal("15.00"));
+        order1.setItemCount(2);
+        order1.setTotalQuantity(3);
+        order1.setCreatedAt(LocalDateTime.of(2026, 2, 26, 14, 30, 25));
+
+        SaleOrder order2 = new SaleOrder();
+        order2.setId("order-2");
+        order2.setOrderNumber("SO20260226120000001");
+        order2.setTotalAmount(new BigDecimal("5.00"));
+        order2.setItemCount(1);
+        order2.setTotalQuantity(2);
+        order2.setCreatedAt(LocalDateTime.of(2026, 2, 26, 12, 0, 0));
+
+        QuerySaleHistoryRequest request = new QuerySaleHistoryRequest();
+        request.setPage(0);
+        request.setSize(20);
+
+        Page<SaleOrder> mockPage = new Page<>(1, 20);
+        mockPage.setRecords(List.of(order1, order2));
+        mockPage.setTotal(2L);
+        mockPage.setPages(1L);
+
+        when(saleOrderMapper.selectOrderPage(any(Page.class), isNull(), isNull()))
+                .thenReturn(mockPage);
+
+        // When
+        IPage<SaleOrder> result = saleService.getSaleHistory(request);
+
+        // Then
+        assertThat(result.getRecords()).hasSize(2);
+        assertThat(result.getRecords().get(0).getId()).isEqualTo("order-1");
+        assertThat(result.getRecords().get(1).getId()).isEqualTo("order-2");
+        assertThat(result.getTotal()).isEqualTo(2L);
     }
 }
