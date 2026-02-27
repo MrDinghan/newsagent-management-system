@@ -73,4 +73,56 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- ===== 日报查询相关 ===== -->
+
+    <!-- 查询指定时间范围内的订单总数 -->
+    <select id="selectDailyOrderCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM sale_orders
+        WHERE created_at &gt;= #{startDateTime}
+          AND created_at &lt;= #{endDateTime}
+    </select>
+
+    <!-- 查询指定时间范围内的总销售额，COALESCE 处理无记录时返回0 -->
+    <select id="selectDailyTotalAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM sale_orders
+        WHERE created_at &gt;= #{startDateTime}
+          AND created_at &lt;= #{endDateTime}
+    </select>
+
+    <!--
+        查询 TOP5 畅销商品（按销售数量降序），结果映射到 TopProductVO
+        - 使用 sale_items.product_name 快照字段，不关联 products 表
+        - 按 product_id + product_name 分组，防止同一商品因改名被重复计算
+        - BINARY(16) join 在数据库层完成，无需 TypeHandler
+    -->
+    <select id="selectTopProducts" resultType="org.shining319.newsstand_backend_system.dto.response.TopProductVO">
+        SELECT si.product_name  AS productName,
+               SUM(si.quantity) AS totalQuantity
+        FROM sale_items si
+                 INNER JOIN sale_orders so ON si.order_id = so.id
+        WHERE so.created_at &gt;= #{startDateTime}
+          AND so.created_at &lt;= #{endDateTime}
+        GROUP BY si.product_id, si.product_name
+        ORDER BY totalQuantity DESC
+        LIMIT 5
+    </select>
+
+    <!--
+        查询各类别（NEWSPAPER/MAGAZINE）的销售金额
+        - 关联 products 表获取商品类型（不过滤 deleted，支持已软删除商品的历史销售数据）
+        - COALESCE 处理无记录时返回0
+    -->
+    <select id="selectCategorySales" resultType="java.util.Map">
+        SELECT p.type                           AS productType,
+               COALESCE(SUM(si.subtotal), 0)   AS amount
+        FROM sale_items si
+                 INNER JOIN sale_orders so ON si.order_id = so.id
+                 INNER JOIN products p ON si.product_id = p.id
+        WHERE so.created_at &gt;= #{startDateTime}
+          AND so.created_at &lt;= #{endDateTime}
+        GROUP BY p.type
+    </select>
+
 </mapper>

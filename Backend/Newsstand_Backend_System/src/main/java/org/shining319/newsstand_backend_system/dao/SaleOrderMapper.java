@@ -7,7 +7,12 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.shining319.newsstand_backend_system.entity.SaleOrder;
 
+import org.shining319.newsstand_backend_system.dto.response.TopProductVO;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: shining319
@@ -45,5 +50,57 @@ public interface SaleOrderMapper extends BaseMapper<SaleOrder> {
             Page<SaleOrder> page,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
+    );
+
+    // ===== 日报查询相关 =====
+
+    /**
+     * 查询指定时间范围内的订单总数
+     *
+     * @param startDateTime 开始时间（当日 00:00:00）
+     * @param endDateTime   结束时间（当日 23:59:59.999999999）
+     * @return 订单总数
+     */
+    Integer selectDailyOrderCount(
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
+
+    /**
+     * 查询指定时间范围内的总销售额
+     *
+     * @param startDateTime 开始时间（当日 00:00:00）
+     * @param endDateTime   结束时间（当日 23:59:59.999999999）
+     * @return 总销售额（无记录时为0）
+     */
+    BigDecimal selectDailyTotalAmount(
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
+
+    /**
+     * 查询指定时间范围内 TOP5 畅销商品（按数量降序）
+     * 使用 sale_items.product_name 快照字段，不关联 products 表
+     *
+     * @param startDateTime 开始时间
+     * @param endDateTime   结束时间
+     * @return TOP5 畅销商品列表（最多5条，无记录时为空列表）
+     */
+    List<TopProductVO> selectTopProducts(
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
+
+    /**
+     * 查询指定时间范围内各类别（NEWSPAPER/MAGAZINE）的销售金额
+     * 关联 products 表获取商品类型（不过滤 deleted，支持已软删除商品的历史数据）
+     *
+     * @param startDateTime 开始时间
+     * @param endDateTime   结束时间
+     * @return 各类别销售金额列表，Map 包含 productType 和 amount
+     */
+    List<Map<String, Object>> selectCategorySales(
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
     );
 }

@@ -53,6 +53,10 @@ public class SwaggerConfig {
         RESPONSE_CODE_EXCLUSIONS.put("SaleController.getSaleById", Set.of("400", "409"));
         // getSaleHistory 是列表查询，无实体查找（无404），无唯一性检查（无409）
         RESPONSE_CODE_EXCLUSIONS.put("SaleController.getSaleHistory", Set.of("404", "409"));
+
+        // ReportController 相关接口
+        // getDailyReport 是聚合统计查询，无实体查找（无404），无唯一性检查（无409）；无数据时返回空结构而非404
+        RESPONSE_CODE_EXCLUSIONS.put("ReportController.getDailyReport", Set.of("404", "409"));
     }
 
     /**
