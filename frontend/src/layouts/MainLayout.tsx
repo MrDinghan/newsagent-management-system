@@ -1,4 +1,9 @@
-import { ReadOutlined, ShoppingOutlined } from "@ant-design/icons";
+import {
+  HistoryOutlined,
+  ReadOutlined,
+  ShoppingCartOutlined,
+  ShoppingOutlined,
+} from "@ant-design/icons";
 import { css } from "@emotion/css";
 import { Layout, Menu, theme } from "antd";
 import { type FC, type ReactNode } from "react";
@@ -11,6 +16,16 @@ const menuItems = [
     key: "/products",
     icon: <ShoppingOutlined />,
     label: "Products",
+  },
+  {
+    key: "/sales",
+    icon: <ShoppingCartOutlined />,
+    label: "Sales",
+  },
+  {
+    key: "/sales/history",
+    icon: <HistoryOutlined />,
+    label: "Sales History",
   },
 ];
 
@@ -84,7 +99,7 @@ const MainLayout: FC<{ children: ReactNode }> = ({ children }) => {
         <Content
           className={css`
             padding: ${token.paddingLG}px;
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 64px);
           `}
         >
           {children}
