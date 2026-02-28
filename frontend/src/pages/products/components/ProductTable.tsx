@@ -1,6 +1,6 @@
 import { DeleteOutlined, EditOutlined, StockOutlined } from "@ant-design/icons";
 import { css } from "@emotion/css";
-import { Button, Popconfirm, Space, Table, Tag } from "antd";
+import { Button, Popconfirm, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TablePaginationConfig } from "antd/es/table";
 import { type FC } from "react";
@@ -74,12 +74,14 @@ const ProductTable: FC<ProductTableProps> = ({
     },
     {
       title: "Action",
+      fixed: "end",
       render: (_, record) => (
-        <Space>
+        <>
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => onEdit(record)}
+            size="small"
           >
             Edit
           </Button>
@@ -87,6 +89,7 @@ const ProductTable: FC<ProductTableProps> = ({
             type="link"
             icon={<StockOutlined />}
             onClick={() => onAdjustStock(record)}
+            size="small"
           >
             Adjust Stock
           </Button>
@@ -97,11 +100,11 @@ const ProductTable: FC<ProductTableProps> = ({
             okText="Delete"
             okButtonProps={{ danger: true }}
           >
-            <Button type="link" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               Delete
             </Button>
           </Popconfirm>
-        </Space>
+        </>
       ),
     },
   ];
@@ -113,6 +116,16 @@ const ProductTable: FC<ProductTableProps> = ({
       dataSource={dataSource}
       loading={loading}
       pagination={pagination}
+      className={css`
+        .ant-table-body {
+          scrollbar-width: thin;
+          overflow: auto !important;
+        }
+      `}
+      scroll={{
+        x: "max-content",
+        y: "calc(100vh - 390px)",
+      }}
     />
   );
 };
