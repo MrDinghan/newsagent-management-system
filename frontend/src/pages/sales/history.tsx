@@ -73,7 +73,11 @@ const SaleHistoryPage: FC = () => {
   ];
 
   return (
-    <Card>
+    <Card
+      className={css`
+        height: 100%;
+      `}
+    >
       <div
         className={css`
           display: flex;
@@ -109,6 +113,16 @@ const SaleHistoryPage: FC = () => {
         dataSource={data?.data}
         rowKey="id"
         loading={isLoading}
+        className={css`
+          .ant-table-body {
+            scrollbar-width: thin;
+            overflow: auto !important;
+          }
+        `}
+        scroll={{
+          x: "max-content",
+          y: "calc(100vh - 250px)",
+        }}
         pagination={{
           current: page + 1,
           pageSize,

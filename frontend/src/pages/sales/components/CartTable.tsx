@@ -94,6 +94,7 @@ const CartTable: FC<CartTableProps> = ({
         flex: 1;
         min-height: 0;
         overflow-y: auto;
+        /* scrollbar-width: thin; */
       `}
     >
       <Table

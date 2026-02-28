@@ -67,6 +67,7 @@ const ProductSearch: FC<ProductSearchProps> = ({ onAdd, cartItems }) => {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
+          /* scrollbar-width: thin; */
         `}
       >
         <Spin spinning={isLoading}>
