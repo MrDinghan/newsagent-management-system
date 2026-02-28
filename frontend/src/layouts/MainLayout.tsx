@@ -86,9 +86,8 @@ const MainLayout: FC<{ children: ReactNode }> = ({ children }) => {
           <Menu
             mode="inline"
             selectedKeys={[
-              menuItems.find((item) =>
-                location.pathname.startsWith(item.key),
-              )?.key ?? location.pathname,
+              menuItems.find((item) => location.pathname.startsWith(item.key))
+                ?.key ?? location.pathname,
             ]}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
@@ -97,7 +96,7 @@ const MainLayout: FC<{ children: ReactNode }> = ({ children }) => {
         <Content
           className={css`
             padding: ${token.paddingLG}px;
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 64px);
           `}
         >
           {children}

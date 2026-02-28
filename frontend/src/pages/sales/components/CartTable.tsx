@@ -1,4 +1,5 @@
-import { Empty, Table } from "antd";
+import { css } from "@emotion/css";
+import { Button, Empty, InputNumber, Popconfirm, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { type FC, useMemo } from "react";
 
@@ -6,9 +7,15 @@ import type { CartItem } from "../hooks/useCart";
 
 interface CartTableProps {
   items: CartItem[];
+  onUpdateQuantity: (productId: string, quantity: number) => void;
+  onRemove: (productId: string) => void;
 }
 
-const CartTable: FC<CartTableProps> = ({ items }) => {
+const CartTable: FC<CartTableProps> = ({
+  items,
+  onUpdateQuantity,
+  onRemove,
+}) => {
   const columns: ColumnsType<CartItem> = useMemo(
     () => [
       {
@@ -26,6 +33,17 @@ const CartTable: FC<CartTableProps> = ({ items }) => {
         title: "Quantity",
         dataIndex: "quantity",
         key: "quantity",
+        render: (_: number, record: CartItem) => (
+          <InputNumber
+            min={1}
+            max={record.availableStock}
+            value={record.quantity}
+            size="small"
+            onChange={(val) => {
+              if (val != null) onUpdateQuantity(record.productId, val);
+            }}
+          />
+        ),
       },
       {
         title: "Subtotal",
@@ -36,24 +54,56 @@ const CartTable: FC<CartTableProps> = ({ items }) => {
       {
         title: "Action",
         key: "action",
-        render: () => <span>-</span>,
+        render: (_: unknown, record: CartItem) => (
+          <Popconfirm
+            title="Remove item"
+            description={`Remove "${record.name}" from cart?`}
+            onConfirm={() => onRemove(record.productId)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button type="link" danger size="small">
+              Remove
+            </Button>
+          </Popconfirm>
+        ),
       },
     ],
-    [],
+    [onUpdateQuantity, onRemove],
   );
 
   if (items.length === 0) {
-    return <Empty description="Cart is empty" />;
+    return (
+      <div
+        className={css`
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: 1;
+          min-height: 0;
+        `}
+      >
+        <Empty description="Cart is empty" />
+      </div>
+    );
   }
 
   return (
-    <Table
-      columns={columns}
-      dataSource={items}
-      rowKey="productId"
-      pagination={false}
-      size="small"
-    />
+    <div
+      className={css`
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      `}
+    >
+      <Table
+        columns={columns}
+        dataSource={items}
+        rowKey="productId"
+        pagination={false}
+        size="small"
+      />
+    </div>
   );
 };
 

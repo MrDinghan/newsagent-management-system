@@ -4,67 +4,115 @@ import { type FC } from "react";
 
 import CartTable from "./components/CartTable";
 import ProductSearch from "./components/ProductSearch";
+import SaleSummary from "./components/SaleSummary";
 import { useCart } from "./hooks/useCart";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const SalesPage: FC = () => {
   const cart = useCart();
 
   return (
-    <Row
-      gutter={24}
+    <div
       className={css`
-        height: calc(100vh - 64px - 48px);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       `}
     >
-      <Col
-        span={14}
+      <Row
+        gutter={24}
         className={css`
-          height: 100%;
-          overflow-y: auto;
+          flex: 1;
+          min-height: 0;
         `}
       >
-        <Card>
-          <Title level={5}>Products</Title>
-          <ProductSearch onAdd={cart.addItem} cartItems={cart.items} />
-        </Card>
-      </Col>
-
-      <Col
-        span={10}
-        className={css`
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        `}
-      >
-        <Card
+        <Col
+          span={12}
           className={css`
-            flex: 1;
-            overflow-y: auto;
+            height: 100%;
           `}
         >
-          <Title level={5}>Shopping Cart</Title>
-          <CartTable items={cart.items} />
-        </Card>
-
-        <Card>
-          <Title level={5}>Order Summary</Title>
-          <div
+          <Card
             className={css`
+              height: 100%;
               display: flex;
-              justify-content: space-between;
+              flex-direction: column;
             `}
+            styles={{
+              body: {
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              },
+            }}
           >
-            <Text>Items: {cart.itemCount}</Text>
-            <Text>Total Qty: {cart.totalQuantity}</Text>
-            <Text strong>Total: &euro;{cart.totalAmount.toFixed(2)}</Text>
-          </div>
-        </Card>
-      </Col>
-    </Row>
+            <Title
+              level={5}
+              className={css`
+                flex-shrink: 0;
+              `}
+            >
+              Products
+            </Title>
+            <ProductSearch onAdd={cart.addItem} cartItems={cart.items} />
+          </Card>
+        </Col>
+
+        <Col
+          span={12}
+          className={css`
+            height: 100%;
+          `}
+        >
+          <Card
+            className={css`
+              height: 100%;
+              display: flex;
+              flex-direction: column;
+            `}
+            styles={{
+              body: {
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              },
+            }}
+          >
+            <Title
+              level={5}
+              className={css`
+                flex-shrink: 0;
+              `}
+            >
+              Shopping Cart
+            </Title>
+            <CartTable
+              items={cart.items}
+              onUpdateQuantity={cart.updateQuantity}
+              onRemove={cart.removeItem}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card
+        className={css`
+          margin-top: 16px;
+          flex-shrink: 0;
+        `}
+      >
+        <SaleSummary
+          itemCount={cart.itemCount}
+          totalQuantity={cart.totalQuantity}
+          totalAmount={cart.totalAmount}
+          toCreateSaleRequest={cart.toCreateSaleRequest}
+          onOrderSuccess={cart.clearCart}
+        />
+      </Card>
+    </div>
   );
 };
 
