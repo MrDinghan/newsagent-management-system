@@ -23,8 +23,13 @@ AXIOS_INSTANCE.interceptors.response.use(
     if (Axios.isCancel(error)) {
       return Promise.reject(error);
     }
-    message.error(error?.message || "An error occurred");
-    return Promise.reject(error);
+    let errorMsg = error?.message || "An error occurred";
+    const resErrorMsg = error.response?.data?.errorMsg;
+    if (resErrorMsg) {
+      errorMsg = resErrorMsg;
+    }
+    message.error(errorMsg);
+    return Promise.reject(new Error(errorMsg));
   },
 );
 

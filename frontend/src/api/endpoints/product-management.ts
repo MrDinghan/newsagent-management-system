@@ -28,6 +28,7 @@ import { request } from '../request';
 import type {
   AdjustStockRequest,
   BusinessExceptionResult,
+  CheckStockParams,
   ConflictExceptionResult,
   CreateProductRequest,
   GetLowStockProductsParams,
@@ -37,6 +38,7 @@ import type {
   ProductVOResult,
   QueryProductsParams,
   RuntimeExceptionResult,
+  StockCheckResult,
   UpdateProductRequest,
   ValidationExceptionResult,
   VoidResult
@@ -539,6 +541,120 @@ export const useAdjustStock = <TError = BusinessExceptionResult | NotFoundExcept
       return useMutation(getAdjustStockMutationOptions(options), queryClient);
     }
     /**
+ * Check if the product has sufficient stock for the requested quantity. Returns available=true if currentStock >= quantity, false otherwise. Always returns 200 even when stock is insufficient (check the 'available' field).
+ * @summary Check product stock availability
+ */
+export const getCheckStockUrl = (id: string,
+    params: CheckStockParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/products/${id}/stock-check?${stringifiedParams}` : `/api/products/${id}/stock-check`
+}
+
+export const checkStock = async (id: string,
+    params: CheckStockParams, options?: RequestInit): Promise<StockCheckResult> => {
+  
+  return request<StockCheckResult>(getCheckStockUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getCheckStockQueryKey = (id: string,
+    params?: CheckStockParams,) => {
+    return [
+    `/api/products/${id}/stock-check`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getCheckStockQueryOptions = <TData = Awaited<ReturnType<typeof checkStock>>, TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult>(id: string,
+    params: CheckStockParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkStock>>, TError, TData>>, request?: SecondParameter<typeof request>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCheckStockQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof checkStock>>> = ({ signal }) => checkStock(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof checkStock>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CheckStockQueryResult = NonNullable<Awaited<ReturnType<typeof checkStock>>>
+export type CheckStockQueryError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult
+
+
+export function useCheckStock<TData = Awaited<ReturnType<typeof checkStock>>, TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string,
+    params: CheckStockParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkStock>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkStock>>,
+          TError,
+          Awaited<ReturnType<typeof checkStock>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCheckStock<TData = Awaited<ReturnType<typeof checkStock>>, TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string,
+    params: CheckStockParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkStock>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkStock>>,
+          TError,
+          Awaited<ReturnType<typeof checkStock>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCheckStock<TData = Awaited<ReturnType<typeof checkStock>>, TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string,
+    params: CheckStockParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkStock>>, TError, TData>>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Check product stock availability
+ */
+
+export function useCheckStock<TData = Awaited<ReturnType<typeof checkStock>>, TError = BusinessExceptionResult | NotFoundExceptionResult | RuntimeExceptionResult>(
+ id: string,
+    params: CheckStockParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkStock>>, TError, TData>>, request?: SecondParameter<typeof request>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCheckStockQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+/**
  * Query products with stock below or equal to the specified threshold. Returns products sorted by stock in ascending order. Default threshold is 10 if not specified. **IMPORTANT: page parameter starts from 0 (0 = first page)**
  * @summary Query low stock products with pagination
  */

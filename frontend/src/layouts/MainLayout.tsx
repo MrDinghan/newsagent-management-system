@@ -1,4 +1,8 @@
-import { ReadOutlined, ShoppingOutlined } from "@ant-design/icons";
+import {
+  ReadOutlined,
+  ShoppingCartOutlined,
+  ShoppingOutlined,
+} from "@ant-design/icons";
 import { css } from "@emotion/css";
 import { Layout, Menu, theme } from "antd";
 import { type FC, type ReactNode } from "react";
@@ -11,6 +15,11 @@ const menuItems = [
     key: "/products",
     icon: <ShoppingOutlined />,
     label: "Products",
+  },
+  {
+    key: "/sales",
+    icon: <ShoppingCartOutlined />,
+    label: "Sales",
   },
 ];
 
@@ -76,7 +85,11 @@ const MainLayout: FC<{ children: ReactNode }> = ({ children }) => {
         >
           <Menu
             mode="inline"
-            selectedKeys={[location.pathname]}
+            selectedKeys={[
+              menuItems.find((item) =>
+                location.pathname.startsWith(item.key),
+              )?.key ?? location.pathname,
+            ]}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
           />
