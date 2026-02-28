@@ -1,4 +1,5 @@
 import {
+  HistoryOutlined,
   ReadOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
@@ -20,6 +21,11 @@ const menuItems = [
     key: "/sales",
     icon: <ShoppingCartOutlined />,
     label: "Sales",
+  },
+  {
+    key: "/sales/history",
+    icon: <HistoryOutlined />,
+    label: "Sales History",
   },
 ];
 
@@ -85,10 +91,7 @@ const MainLayout: FC<{ children: ReactNode }> = ({ children }) => {
         >
           <Menu
             mode="inline"
-            selectedKeys={[
-              menuItems.find((item) => location.pathname.startsWith(item.key))
-                ?.key ?? location.pathname,
-            ]}
+            selectedKeys={[location.pathname]}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
           />
