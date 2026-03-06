@@ -1,4 +1,5 @@
 import {
+  BarChartOutlined,
   HistoryOutlined,
   ReadOutlined,
   ShoppingCartOutlined,
@@ -26,6 +27,11 @@ const menuItems = [
     key: "/sales/history",
     icon: <HistoryOutlined />,
     label: "Sales History",
+  },
+  {
+    key: "/reports",
+    icon: <BarChartOutlined />,
+    label: "Reports",
   },
 ];
 
