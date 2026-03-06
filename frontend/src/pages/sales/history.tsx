@@ -179,6 +179,7 @@ const SaleHistoryPage: FC = () => {
           pageSize,
           total: data?.total ?? 0,
           showSizeChanger: true,
+          showTotal: (total) => `Total ${total} orders`,
           onChange: (p, size) => {
             setPage(p - 1);
             setPageSize(size);
