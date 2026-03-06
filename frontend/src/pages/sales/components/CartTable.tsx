@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import { Button, Empty, InputNumber, Popconfirm, Table } from "antd";
+import { Button, Empty, InputNumber, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { type FC, useMemo } from "react";
 
@@ -55,17 +55,14 @@ const CartTable: FC<CartTableProps> = ({
         title: "Action",
         key: "action",
         render: (_: unknown, record: CartItem) => (
-          <Popconfirm
-            title="Remove item"
-            description={`Remove "${record.name}" from cart?`}
-            onConfirm={() => onRemove(record.productId)}
-            okText="Yes"
-            cancelText="No"
+          <Button
+            type="link"
+            danger
+            size="small"
+            onClick={() => onRemove(record.productId)}
           >
-            <Button type="link" danger size="small">
-              Remove
-            </Button>
-          </Popconfirm>
+            Remove
+          </Button>
         ),
       },
     ],
