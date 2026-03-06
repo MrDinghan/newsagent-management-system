@@ -43,10 +43,20 @@ public class SwaggerConfig {
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.getProductById", Set.of("409","400"));
         // getLowStockProducts 不进行产品查找或唯一性检查，NotFoundException(404) 和 ConflictException(409) 不会发生
         RESPONSE_CODE_EXCLUSIONS.put("ProductController.getLowStockProducts", Set.of("404","409"));
+        // checkStock 不进行唯一性检查，ConflictException(409) 不会发生
+        RESPONSE_CODE_EXCLUSIONS.put("ProductController.checkStock", Set.of("409"));
 
-        // 可以继续添加其他接口的排除规则
-        // RESPONSE_CODE_EXCLUSIONS.put("UserController.login", Set.of("404"));
-        // RESPONSE_CODE_EXCLUSIONS.put("OrderController.createOrder", Set.of("404"));
+        // SaleController 相关接口
+        // createSale 不进行唯一性检查，ConflictException(409) 不会发生
+        RESPONSE_CODE_EXCLUSIONS.put("SaleController.createSale", Set.of("409"));
+        // getSaleById 无请求体验证（无400），无唯一性检查（无409）
+        RESPONSE_CODE_EXCLUSIONS.put("SaleController.getSaleById", Set.of("400", "409"));
+        // getSaleHistory 是列表查询，无实体查找（无404），无唯一性检查（无409）
+        RESPONSE_CODE_EXCLUSIONS.put("SaleController.getSaleHistory", Set.of("404", "409"));
+
+        // ReportController 相关接口
+        // getDailyReport 是聚合统计查询，无实体查找（无404），无唯一性检查（无409）；无数据时返回空结构而非404
+        RESPONSE_CODE_EXCLUSIONS.put("ReportController.getDailyReport", Set.of("404", "409"));
     }
 
     /**

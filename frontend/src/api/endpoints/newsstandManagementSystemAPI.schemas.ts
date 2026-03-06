@@ -148,6 +148,88 @@ export interface NotFoundExceptionResult {
 }
 
 /**
+ * Sale item request (single product in the order)
+ */
+export interface SaleItemRequest {
+  /**
+   * 产品ID (UUIDv7)
+   * @minLength 1
+   */
+  productId: string;
+  /**
+   * 购买数量
+   * @minimum 1
+   * @maximum 9999
+   */
+  quantity: number;
+}
+
+/**
+ * Create sale order request
+ */
+export interface CreateSaleRequest {
+  /**
+   * 购物车商品列表（至少1个商品）
+   * @minItems 1
+   */
+  items: SaleItemRequest[];
+}
+
+/**
+ * Sale item view object
+ */
+export interface SaleItemVO {
+  /** 明细ID */
+  id?: string;
+  /** 关联产品ID */
+  productId?: string;
+  /** 产品名称（销售时快照） */
+  productName?: string;
+  /** 单价（销售时快照） */
+  unitPrice?: number;
+  /** 购买数量 */
+  quantity?: number;
+  /** 小计金额（单价 × 数量） */
+  subtotal?: number;
+}
+
+/**
+ * Sale order view object (includes item details)
+ */
+export interface SaleOrderVO {
+  /** 订单ID */
+  id?: string;
+  /** 订单号 */
+  orderNumber?: string;
+  /** 订单总金额 */
+  totalAmount?: number;
+  /** 商品种类数量 */
+  itemCount?: number;
+  /** 商品总数量 */
+  totalQuantity?: number;
+  /** 订单创建时间 */
+  createdAt?: string;
+  /** 订单明细列表 */
+  items?: SaleItemVO[];
+}
+
+/**
+ * Create sale order response
+ */
+export interface SaleOrderVOResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 销售订单数据（含明细列表） */
+  data?: SaleOrderVO;
+  /** 数据总数量 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
+/**
  * 产品类型
  */
 export type CreateProductRequestType = typeof CreateProductRequestType[keyof typeof CreateProductRequestType];
@@ -212,6 +294,99 @@ export interface BusinessExceptionResult {
 }
 
 /**
+ * Query sale history request
+ */
+export interface QuerySaleHistoryRequest {
+  /**
+   * 页码（从0开始，0表示第一页）
+   * @minimum 0
+   */
+  page?: number;
+  /**
+   * 每页数量（1-100之间）
+   * @minimum 1
+   * @maximum 100
+   */
+  size?: number;
+  /** 开始日期（格式：yyyy-MM-dd，可选） */
+  startDate?: string;
+  /** 结束日期（格式：yyyy-MM-dd，可选） */
+  endDate?: string;
+}
+
+/**
+ * Sale history list response
+ */
+export interface SaleOrderListResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 销售订单列表（不含明细） */
+  data?: SaleOrderVO[];
+  /** 总记录数 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
+/**
+ * Sales breakdown by product category
+ */
+export interface CategorySalesVO {
+  /** 报纸销售额（当日无记录时为0） */
+  newspaperAmount?: number;
+  /** 杂志销售额（当日无记录时为0） */
+  magazineAmount?: number;
+  /** 报纸销售占比（百分比，0-100，当日无记录时为0） */
+  newspaperPercentage?: number;
+  /** 杂志销售占比（百分比，0-100，当日无记录时为0） */
+  magazinePercentage?: number;
+}
+
+/**
+ * Top selling product info
+ */
+export interface TopProductVO {
+  /** 商品名称 */
+  productName?: string;
+  /** 销售数量 */
+  totalQuantity?: number;
+}
+
+/**
+ * Daily sales report data
+ */
+export interface DailyReportVO {
+  /** 查询日期 */
+  date?: string;
+  /** 总销售额（当日无记录时为0） */
+  totalAmount?: number;
+  /** 订单总数（当日无记录时为0） */
+  orderCount?: number;
+  /** TOP5畅销商品列表（当日无记录时为空列表） */
+  topProducts?: TopProductVO[];
+  /** 各类别销售统计（当日无记录时金额为0、占比为0） */
+  categorySales?: CategorySalesVO;
+}
+
+/**
+ * Daily sales report response
+ */
+export interface DailyReportVOResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 日报统计数据 */
+  data?: DailyReportVO;
+  /** 数据总数量 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
+/**
  * 产品类型（可选，不传则查询全部）
  */
 export type QueryProductRequestType = typeof QueryProductRequestType[keyof typeof QueryProductRequestType];
@@ -252,6 +427,32 @@ export interface ProductListResult {
   /** 产品列表 */
   data?: ProductVO[];
   /** 总记录数 */
+  total?: number;
+  /** 总页数 */
+  totalPages?: number;
+}
+
+/**
+ * Stock check result
+ */
+export interface StockCheckVO {
+  /** 库存是否充足（true=充足，false=不足） */
+  available?: boolean;
+  /** 当前库存数量 */
+  currentStock?: number;
+}
+
+/**
+ * Stock check response
+ */
+export interface StockCheckResult {
+  /** 操作是否成功 */
+  success?: boolean;
+  /** 错误信息 */
+  errorMsg?: string;
+  /** 库存验证结果 */
+  data?: StockCheckVO;
+  /** 数据总数量 */
   total?: number;
   /** 总页数 */
   totalPages?: number;
@@ -310,6 +511,29 @@ export interface VoidResult {
   totalPages?: number;
 }
 
+export type GetSaleHistoryParams = {
+request: QuerySaleHistoryRequest;
+/**
+ * **Page number (starts from 0, 0 means first page)**
+ * @minimum 0
+ */
+page?: number;
+/**
+ * Page size (1-100)
+ * @minimum 1
+ * @maximum 100
+ */
+size?: number;
+/**
+ * Start date (inclusive, format: yyyy-MM-dd, optional)
+ */
+startDate?: string;
+/**
+ * End date (inclusive, format: yyyy-MM-dd, optional)
+ */
+endDate?: string;
+};
+
 export type QueryProductsParams = {
 request: QueryProductRequest;
 /**
@@ -336,6 +560,21 @@ export const QueryProductsType = {
   NEWSPAPER: 'NEWSPAPER',
   MAGAZINE: 'MAGAZINE',
 } as const;
+
+export type GetDailyReportParams = {
+/**
+ * Query date (format: yyyy-MM-dd, defaults to today if not provided)
+ */
+date?: string;
+};
+
+export type CheckStockParams = {
+/**
+ * Required quantity to check (must be greater than 0)
+ * @minimum 1
+ */
+quantity: number;
+};
 
 export type GetLowStockProductsParams = {
 request: QueryLowStockRequest;

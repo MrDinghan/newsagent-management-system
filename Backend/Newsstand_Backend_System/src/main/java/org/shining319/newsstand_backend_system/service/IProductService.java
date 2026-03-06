@@ -7,6 +7,7 @@ import org.shining319.newsstand_backend_system.dto.request.CreateProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryLowStockRequest;
 import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
+import org.shining319.newsstand_backend_system.dto.response.StockCheckVO;
 import org.shining319.newsstand_backend_system.entity.Product;
 
 import java.util.List;
@@ -85,4 +86,15 @@ public interface IProductService extends IService<Product> {
      * @return 低库存产品分页结果
      */
     Page<Product> getLowStockProducts(QueryLowStockRequest request);
+
+    /**
+     * 验证产品库存是否满足指定数量
+     *
+     * @param id       产品ID
+     * @param quantity 需要的数量（必须大于0）
+     * @return StockCheckVO（available=库存是否充足，currentStock=当前库存）
+     * @throws org.shining319.newsstand_backend_system.exception.NotFoundException 当产品不存在时
+     * @throws org.shining319.newsstand_backend_system.exception.BusinessException 当quantity <= 0时
+     */
+    StockCheckVO checkStock(String id, Integer quantity);
 }

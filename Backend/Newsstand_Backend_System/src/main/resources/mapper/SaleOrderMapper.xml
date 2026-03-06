@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.shining319.newsstand_backend_system.dao.SaleOrderMapper">
+
+    <!-- SaleOrder 基础 ResultMap（不含明细，用于列表查询） -->
+    <resultMap id="BaseResultMap" type="org.shining319.newsstand_backend_system.entity.SaleOrder" autoMapping="true">
+        <id column="id" property="id"
+            typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="item_count" property="itemCount"/>
+        <result column="total_quantity" property="totalQuantity"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!--
+        含明细的 ResultMap（用于订单详情查询）
+        使用 LEFT JOIN 内联明细，避免嵌套 select 传递 BINARY 列原始 byte[] 给 UuidBinaryTypeHandler(String) 导致的 ClassCastException。
+        sale_items 字段使用别名防止与 sale_orders 字段（尤其是 id）冲突。
+    -->
+    <resultMap id="OrderWithItemsResultMap" type="org.shining319.newsstand_backend_system.entity.SaleOrder"
+               extends="BaseResultMap">
+        <collection property="items" ofType="org.shining319.newsstand_backend_system.entity.SaleItem">
+            <id   column="item_id"         property="id"          typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+            <result column="item_order_id"   property="orderId"     typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+            <result column="item_product_id" property="productId"   typeHandler="org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler"/>
+            <result column="product_name"    property="productName"/>
+            <result column="unit_price"      property="unitPrice"/>
+            <result column="quantity"        property="quantity"/>
+            <result column="subtotal"        property="subtotal"/>
+        </collection>
+    </resultMap>
+
+    <!-- 插入销售订单，明确指定 UUID TypeHandler（created_at 由数据库 DEFAULT CURRENT_TIMESTAMP 自动生成） -->
+    <insert id="insertOrder" parameterType="org.shining319.newsstand_backend_system.entity.SaleOrder">
+        INSERT INTO sale_orders (id, order_number, total_amount, item_count, total_quantity)
+        VALUES (
+            #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler},
+            #{orderNumber},
+            #{totalAmount},
+            #{itemCount},
+            #{totalQuantity}
+        )
+    </insert>
+
+    <!-- 按 ID 查询完整订单（含明细列表），LEFT JOIN sale_items，si.id/order_id/product_id 使用别名避免与 so.id 冲突 -->
+    <select id="selectOrderWithItems" resultMap="OrderWithItemsResultMap">
+        SELECT so.id, so.order_number, so.total_amount, so.item_count, so.total_quantity, so.created_at,
+               si.id          AS item_id,
+               si.order_id    AS item_order_id,
+               si.product_id  AS item_product_id,
+               si.product_name,
+               si.unit_price,
+               si.quantity,
+               si.subtotal
+        FROM sale_orders so
+        LEFT JOIN sale_items si ON si.order_id = so.id
+        WHERE so.id = #{id, typeHandler=org.shining319.newsstand_backend_system.config.UuidBinaryTypeHandler}
+    </select>
+
+    <!-- 分页查询销售历史（按时间倒序，支持日期范围筛选） -->
+    <select id="selectOrderPage" resultMap="BaseResultMap">
+        SELECT id, order_number, total_amount, item_count, total_quantity, created_at
+        FROM sale_orders
+        <where>
+            <if test="startDate != null">
+                AND created_at &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND created_at &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- ===== 日报查询相关 ===== -->
+
+    <!-- 查询指定时间范围内的订单总数 -->
+    <select id="selectDailyOrderCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM sale_orders
+        WHERE created_at &gt;= #{startDateTime}
+          AND created_at &lt;= #{endDateTime}
+    </select>
+
+    <!-- 查询指定时间范围内的总销售额，COALESCE 处理无记录时返回0 -->
+    <select id="selectDailyTotalAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM sale_orders
+        WHERE created_at &gt;= #{startDateTime}
+          AND created_at &lt;= #{endDateTime}
+    </select>
+
+    <!--
+        查询 TOP5 畅销商品（按销售数量降序），结果映射到 TopProductVO
+        - 使用 sale_items.product_name 快照字段，不关联 products 表
+        - 按 product_id + product_name 分组，防止同一商品因改名被重复计算
+        - BINARY(16) join 在数据库层完成，无需 TypeHandler
+    -->
+    <select id="selectTopProducts" resultType="org.shining319.newsstand_backend_system.dto.response.TopProductVO">
+        SELECT si.product_name  AS productName,
+               SUM(si.quantity) AS totalQuantity
+        FROM sale_items si
+                 INNER JOIN sale_orders so ON si.order_id = so.id
+        WHERE so.created_at &gt;= #{startDateTime}
+          AND so.created_at &lt;= #{endDateTime}
+        GROUP BY si.product_id, si.product_name
+        ORDER BY totalQuantity DESC
+        LIMIT 5
+    </select>
+
+    <!--
+        查询各类别（NEWSPAPER/MAGAZINE）的销售金额
+        - 关联 products 表获取商品类型（不过滤 deleted，支持已软删除商品的历史销售数据）
+        - COALESCE 处理无记录时返回0
+    -->
+    <select id="selectCategorySales" resultType="java.util.Map">
+        SELECT p.type                           AS productType,
+               COALESCE(SUM(si.subtotal), 0)   AS amount
+        FROM sale_items si
+                 INNER JOIN sale_orders so ON si.order_id = so.id
+                 INNER JOIN products p ON si.product_id = p.id
+        WHERE so.created_at &gt;= #{startDateTime}
+          AND so.created_at &lt;= #{endDateTime}
+        GROUP BY p.type
+    </select>
+
+</mapper>

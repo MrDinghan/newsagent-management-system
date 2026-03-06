@@ -18,6 +18,7 @@ import org.shining319.newsstand_backend_system.dto.request.QueryProductRequest;
 import org.shining319.newsstand_backend_system.dto.request.UpdateProductRequest;
 import org.shining319.newsstand_backend_system.entity.Product;
 import org.shining319.newsstand_backend_system.entity.ProductTypeEnum;
+import org.shining319.newsstand_backend_system.dto.response.StockCheckVO;
 import org.shining319.newsstand_backend_system.exception.BusinessException;
 import org.shining319.newsstand_backend_system.exception.ConflictException;
 import org.shining319.newsstand_backend_system.exception.NotFoundException;
@@ -822,6 +823,107 @@ class ProductServiceImplTest {
 
         // Verify
         verify(productMapper, times(1)).selectProductById("deleted-id");
+    }
+
+    // ==================== B2.2.1: 库存验证Service测试 ====================
+
+    @Test
+    @DisplayName("验证库存 - 库存充足（available=true）")
+    void testCheckStock_Available() {
+        // Given: testProduct.stock = 100，需要 50（充足）
+        when(productMapper.selectProductById(testProduct.getId())).thenReturn(testProduct);
+
+        // When
+        StockCheckVO result = productService.checkStock(testProduct.getId(), 50);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.getAvailable());
+        assertEquals(100, result.getCurrentStock());
+
+        // Verify
+        verify(productMapper, times(1)).selectProductById(testProduct.getId());
+    }
+
+    @Test
+    @DisplayName("验证库存 - 库存不足（available=false）")
+    void testCheckStock_NotAvailable() {
+        // Given: testProduct.stock = 100，需要 150（不足）
+        when(productMapper.selectProductById(testProduct.getId())).thenReturn(testProduct);
+
+        // When
+        StockCheckVO result = productService.checkStock(testProduct.getId(), 150);
+
+        // Then
+        assertNotNull(result);
+        assertFalse(result.getAvailable());
+        assertEquals(100, result.getCurrentStock());
+
+        // Verify
+        verify(productMapper, times(1)).selectProductById(testProduct.getId());
+    }
+
+    @Test
+    @DisplayName("验证库存 - 边界值（quantity恰好等于stock，available=true）")
+    void testCheckStock_ExactBoundary() {
+        // Given: testProduct.stock = 100，需要 100（恰好相等）
+        when(productMapper.selectProductById(testProduct.getId())).thenReturn(testProduct);
+
+        // When
+        StockCheckVO result = productService.checkStock(testProduct.getId(), 100);
+
+        // Then: stock >= quantity → available=true
+        assertNotNull(result);
+        assertTrue(result.getAvailable());
+        assertEquals(100, result.getCurrentStock());
+    }
+
+    @Test
+    @DisplayName("验证库存 - quantity=0（BusinessException）")
+    void testCheckStock_QuantityZero() {
+        // When & Then
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            productService.checkStock(testProduct.getId(), 0);
+        });
+
+        assertTrue(exception.getMessage().contains("Quantity must be greater than 0"));
+        assertTrue(exception.getMessage().contains("0"));
+
+        // Verify: 不应查询数据库
+        verify(productMapper, never()).selectProductById(any());
+    }
+
+    @Test
+    @DisplayName("验证库存 - quantity<0（BusinessException）")
+    void testCheckStock_QuantityNegative() {
+        // When & Then
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            productService.checkStock(testProduct.getId(), -5);
+        });
+
+        assertTrue(exception.getMessage().contains("Quantity must be greater than 0"));
+
+        // Verify: 不应查询数据库
+        verify(productMapper, never()).selectProductById(any());
+    }
+
+    @Test
+    @DisplayName("验证库存 - 产品不存在（NotFoundException）")
+    void testCheckStock_ProductNotFound() {
+        // Given: 产品不存在
+        String nonExistentId = "non-existent-id";
+        when(productMapper.selectProductById(nonExistentId)).thenReturn(null);
+
+        // When & Then
+        NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+            productService.checkStock(nonExistentId, 10);
+        });
+
+        assertTrue(exception.getMessage().contains("Product not found"));
+        assertTrue(exception.getMessage().contains(nonExistentId));
+
+        // Verify
+        verify(productMapper, times(1)).selectProductById(nonExistentId);
     }
 }
 

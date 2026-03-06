@@ -112,7 +112,6 @@ const ProductsPage: FC = () => {
                     pageSize: size,
                     total: data?.total,
                     showSizeChanger: true,
-                    pageSizeOptions: ["10", "20", "30", "50"],
                     onChange: (p, s) => {
                       setPage(p - 1);
                       setSize(s);
