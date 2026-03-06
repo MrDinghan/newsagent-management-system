@@ -1,6 +1,6 @@
 import { css } from "@emotion/css";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, message, Space, Typography } from "antd";
+import { Button, message, Popconfirm, Space, Typography } from "antd";
 import { type FC } from "react";
 
 import type { CreateSaleRequest } from "@/api/endpoints/newsstandManagementSystemAPI.schemas";
@@ -61,14 +61,22 @@ const SaleSummary: FC<SaleSummaryProps> = ({
           Total: <Text strong>&euro;{totalAmount.toFixed(2)}</Text>
         </Text>
       </Space>
-      <Button
-        type="primary"
+      <Popconfirm
+        title="Place order"
+        description={`Confirm order of ${itemCount} item(s), total €${totalAmount.toFixed(2)}?`}
+        onConfirm={handlePlaceOrder}
+        okText="Confirm"
+        cancelText="Cancel"
         disabled={itemCount === 0}
-        loading={isPending}
-        onClick={handlePlaceOrder}
       >
-        Place Order
-      </Button>
+        <Button
+          type="primary"
+          disabled={itemCount === 0}
+          loading={isPending}
+        >
+          Place Order
+        </Button>
+      </Popconfirm>
     </div>
   );
 };
