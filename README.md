@@ -7,6 +7,8 @@ A full-stack web application for managing newsstand inventory and sales, built w
 - [Project Overview](#project-overview)
 - [Technology Stack](#technology-stack)
 - [Sprint 1 Deliverables](#sprint-1-deliverables)
+- [Sprint 2 Deliverables](#sprint-2-deliverables)
+- [Epic 3 (Partial): Data Query & Reports](#epic-3-partial-data-query--reports)
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
 - [Architecture Principles](#architecture-principles)
@@ -19,6 +21,20 @@ A full-stack web application for managing newsstand inventory and sales, built w
 |----------|-----|
 | **Frontend Demo** | http://34.194.175.52/products |
 | **Backend API Docs (Swagger)** | http://34.194.175.52:8080/swagger-ui/index.html |
+
+---
+
+## Overall Progress
+
+| Epic | Description | Sprint | Story Points | Status |
+|------|-------------|--------|--------------|--------|
+| **Epic 1** | Product & Inventory Management | Sprint 1 | 21 SP | ✅ Complete |
+| **Epic 2** | Sales Processing & Receipts | Sprint 2 | 31 SP | ✅ Complete |
+| **Epic 3** | Data Query & Reports | Sprint 2+ | 11 SP (partial) | 🔄 US 3.1 Complete |
+
+### Code Quality Report (SonarCloud)
+
+![SonarCloud Snapshot](snapshots/sonarcloud-snapshot/sonarcloud-snapshot.png)
 
 ---
 
@@ -190,9 +206,107 @@ Sprint 1 focused on building the foundational product and inventory management c
 | **Frontend Components** | 8 components |
 | **Status** | ✅ Complete |
 
-### Code Quality Report (SonarCloud)
+---
 
-![SonarCloud Snapshot](snapshots/sonarcloud-snapshot/sonarcloud-snapshot.png)
+## Sprint 2 Deliverables
+
+### Epic 2: Sales Processing & Receipts
+
+**Priority:** P0 (Critical) | **Status:** ✅ Completed
+
+Sprint 2 delivered the core sales transaction flow — from product selection through receipt generation — along with a full sales history view.
+
+### Completed User Stories
+
+#### US 2.1–2.6: Sales Page — Create Order, Cart, Complete Sale (19 SP)
+
+**Story:** As a store clerk, I want to select products, build a cart, review the total, and confirm the sale so that the transaction is recorded and inventory is updated automatically.
+
+**Implementation:**
+- **Backend:** `POST /api/sales` — atomic endpoint that validates stock, deducts inventory, and persists the order and all line items in a single transaction with optimistic locking
+- **Frontend:** `sales/index.tsx` — sales page orchestrator; `ProductSearch.tsx` — searchable product picker; `CartTable.tsx` — editable cart with quantity controls; `SaleSummary.tsx` — real-time total display
+
+**Acceptance Criteria:** ✅ All met
+- Product search by name with live results
+- Cart supports add, quantity adjust (not exceeding stock), and remove
+- Total amount updates in real time
+- Completing sale validates stock a second time (server-side) before committing
+- Inventory deducted atomically; concurrent conflicts detected via optimistic locking
+- Cart cleared and success feedback shown after completion
+
+---
+
+#### US 2.7: Generate Sale Receipt (5 SP)
+
+**Story:** As a store clerk, I want to view a receipt after completing a sale so that I can show or save it for the customer.
+
+**Implementation:**
+- **Backend:** `GET /api/sales/{id}` — returns a complete order with all line items (product name snapshot, unit price, quantity, subtotal)
+- **Frontend:** `SaleDetailModal.tsx` — receipt modal auto-opened after sale completion, also accessible from history
+
+**Acceptance Criteria:** ✅ All met
+- Receipt includes: order number, date/time, item list (name, unit price, qty, subtotal), total amount
+- Product name and price are stored as snapshots — unaffected by future product edits or deletions
+- Receipt accessible from sale history by clicking any order row
+
+---
+
+#### US 2.8: View Sale History (5 SP)
+
+**Story:** As a store clerk, I want to view past sales so that I can look up historical transactions.
+
+**Implementation:**
+- **Backend:** `GET /api/sales` — paginated list with optional date-range filter (`startDate` / `endDate`), sorted by creation time descending
+- **Frontend:** `sales/history.tsx` — history page with date picker filter, paginated table, and XLSX export
+
+**Acceptance Criteria:** ✅ All met
+- Displays order number, date/time, total amount, item count
+- Date range filter supported
+- Pagination support (default 20 per page)
+- Click any row to open the full receipt
+- Export to XLSX for offline record-keeping
+
+---
+
+### Sprint 2 Summary
+
+| Metric | Value |
+|--------|-------|
+| **Total Story Points** | 31 |
+| **User Stories Completed** | 8/8 |
+| **Backend APIs Delivered** | 3 endpoints |
+| **Frontend Components** | 6 components |
+| **Status** | ✅ Complete |
+
+---
+
+## Epic 3 (Partial): Data Query & Reports
+
+**Priority:** P1 | **Status:** 🔄 US 3.1 Completed
+
+#### US 3.1: Daily Sales Report (8 SP)
+
+**Story:** As a newsstand owner, I want to view sales statistics for any selected date so that I can understand daily performance.
+
+**Implementation:**
+- **Backend:** `GET /api/reports/daily?date=yyyy-MM-dd` — returns total revenue, order count, TOP 5 best-selling products, and sales breakdown by category (NEWSPAPER / MAGAZINE) for the specified date; defaults to today if `date` is omitted; returns empty data structure (zeros, empty lists) rather than 404 when no records exist
+- **Frontend:** `reports/index.tsx` — reports page with date picker, summary cards, ECharts bar chart for TOP 5 products, and pie chart for category breakdown
+
+**Acceptance Criteria:** ✅ All met
+- Date picker defaults to today; switching date auto-refreshes all data
+- Displays total revenue and order count for the selected date
+- TOP 5 best-selling products shown with quantities
+- Category breakdown (NEWSPAPER / MAGAZINE) shown as a proportion chart
+- "No data" state displayed gracefully when no sales exist for the date
+
+---
+
+### Epic 3 Remaining
+
+| User Story | Story Points | Status |
+|------------|--------------|--------|
+| US 3.1: Daily Sales Report | 8 | ✅ Complete |
+| US 3.2: Stock Alert Threshold Configuration | 3 | 🔲 Not started |
 
 ---
 
@@ -281,6 +395,75 @@ GET /products/low-stock?page=0&size=20&threshold=10
 | size | int | Items per page (1-100) | 20 |
 | threshold | int | Stock threshold | 10 |
 
+### Sale Management Endpoints
+
+#### Create Sale Order
+
+```http
+POST /sales
+Content-Type: application/json
+
+{
+  "items": [
+    { "productId": "019512f3-...", "quantity": 2 },
+    { "productId": "019512f3-...", "quantity": 1 }
+  ]
+}
+```
+
+Returns the complete order with all line items. Validates stock, deducts inventory, and persists the transaction atomically. Uses optimistic locking — returns 400 if a concurrent conflict is detected.
+
+#### Get Sale Order by ID
+
+```http
+GET /sales/{id}
+```
+
+Returns the full order including all item details (product name snapshot, unit price, quantity, subtotal).
+
+#### Query Sale History (Paginated)
+
+```http
+GET /sales?page=0&size=20&startDate=2026-02-01&endDate=2026-02-28
+```
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| page | int | Page number (starts from 0) | 0 |
+| size | int | Items per page (1-100) | 20 |
+| startDate | string | Start date inclusive (yyyy-MM-dd) | - |
+| endDate | string | End date inclusive (yyyy-MM-dd) | - |
+
+Items (line details) are **not** included in list results — use `GET /sales/{id}` for full details.
+
+---
+
+### Report Endpoints
+
+#### Get Daily Sales Report
+
+```http
+GET /reports/daily?date=2026-03-22
+```
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| date | string | Query date (yyyy-MM-dd) | Today |
+
+**Response data fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| date | string | The queried date |
+| totalAmount | decimal | Total revenue for the day |
+| orderCount | int | Number of orders |
+| topProducts | array | TOP 5 best-selling products (name, quantity sold) |
+| categorySales | array | Sales breakdown by category (NEWSPAPER / MAGAZINE) |
+
+Returns an empty data structure (zeros, empty lists) when no sales exist for the date — never 404.
+
+---
+
 ### Response Format
 
 All API responses follow this structure:
@@ -335,32 +518,51 @@ newsagent-management-system/
 │       │   │   ├── SwaggerConfig.java
 │       │   │   └── ...
 │       │   ├── controller/      # REST controllers
-│       │   │   └── ProductController.java
+│       │   │   ├── ProductController.java   # Sprint 1
+│       │   │   ├── SaleController.java      # Sprint 2
+│       │   │   └── ReportController.java    # US 3.1
 │       │   ├── service/         # Business logic
 │       │   │   ├── IProductService.java
+│       │   │   ├── ISaleService.java
+│       │   │   ├── IReportService.java
 │       │   │   └── impl/
-│       │   │       └── ProductServiceImpl.java
+│       │   │       ├── ProductServiceImpl.java
+│       │   │       ├── SaleServiceImpl.java
+│       │   │       └── ReportServiceImpl.java
 │       │   ├── dao/            # Data access layer
-│       │   │   └── ProductMapper.java
-│       │   ├── entity/         # JPA/MyBatis entities
+│       │   │   ├── ProductMapper.java
+│       │   │   ├── SaleOrderMapper.java
+│       │   │   └── SaleItemMapper.java
+│       │   ├── entity/         # MyBatis entities
 │       │   │   ├── Product.java
-│       │   │   └── ProductTypeEnum.java
+│       │   │   ├── ProductTypeEnum.java
+│       │   │   ├── SaleOrder.java           # Sprint 2
+│       │   │   └── SaleItem.java            # Sprint 2
 │       │   ├── dto/            # Data transfer objects
 │       │   │   ├── request/
 │       │   │   │   ├── CreateProductRequest.java
 │       │   │   │   ├── UpdateProductRequest.java
 │       │   │   │   ├── AdjustStockRequest.java
-│       │   │   │   └── ...
+│       │   │   │   ├── CreateSaleRequest.java    # Sprint 2
+│       │   │   │   ├── SaleItemRequest.java      # Sprint 2
+│       │   │   │   └── QuerySaleHistoryRequest.java  # Sprint 2
 │       │   │   └── response/
 │       │   │       ├── ProductVO.java
-│       │   │       └── Result.java
+│       │   │       ├── Result.java
+│       │   │       ├── StockCheckVO.java
+│       │   │       ├── SaleOrderVO.java      # Sprint 2
+│       │   │       ├── SaleItemVO.java       # Sprint 2
+│       │   │       ├── DailyReportVO.java    # US 3.1
+│       │   │       ├── TopProductVO.java     # US 3.1
+│       │   │       └── CategorySalesVO.java  # US 3.1
 │       │   ├── exception/      # Custom exceptions
 │       │   │   ├── BusinessException.java
 │       │   │   ├── NotFoundException.java
 │       │   │   ├── ConflictException.java
 │       │   │   └── GlobalExceptionHandler.java
 │       │   └── util/           # Utility classes
-│       │       └── UuidUtil.java
+│       │       ├── UuidUtil.java
+│       │       └── OrderNumberGenerator.java  # Sprint 2
 │       ├── src/main/resources/
 │       │   ├── application.yml
 │       │   ├── application-dev.yml
@@ -370,29 +572,41 @@ newsagent-management-system/
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── api/                # API integration
+│   │   ├── api/                # API integration (code-generated via Orval)
 │   │   │   ├── endpoints/
 │   │   │   │   ├── product-management.ts
+│   │   │   │   ├── sale-management.ts         # Sprint 2
+│   │   │   │   ├── report.ts                  # US 3.1
 │   │   │   │   └── newsstandManagementSystemAPI.schemas.ts
 │   │   │   └── request.ts
-│   │   ├── constants/          # Constants
+│   │   ├── constants/
 │   │   │   └── product.ts
-│   │   ├── layouts/            # Layout components
+│   │   ├── layouts/
 │   │   │   └── MainLayout.tsx
-│   │   ├── pages/              # Page components
-│   │   │   └── products/
-│   │   │       ├── index.tsx
-│   │   │       ├── components/
-│   │   │       │   ├── CreateProductModal.tsx
-│   │   │       │   ├── EditProductModal.tsx
-│   │   │       │   ├── AdjustStockModal.tsx
-│   │   │       │   ├── AdjustStockForm.tsx
-│   │   │       │   ├── LowStockAlert.tsx
-│   │   │       │   ├── LowStockTab.tsx
-│   │   │       │   ├── ProductDetailModal.tsx
-│   │   │       │   └── ProductTable.tsx
-│   │   │       └── hooks/
-│   │   │           └── useAdjustStockForm.ts
+│   │   ├── pages/
+│   │   │   ├── products/                      # Sprint 1
+│   │   │   │   ├── index.tsx
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── CreateProductModal.tsx
+│   │   │   │   │   ├── EditProductModal.tsx
+│   │   │   │   │   ├── AdjustStockModal.tsx
+│   │   │   │   │   ├── AdjustStockForm.tsx
+│   │   │   │   │   ├── LowStockAlert.tsx
+│   │   │   │   │   ├── LowStockTab.tsx
+│   │   │   │   │   ├── ProductDetailModal.tsx
+│   │   │   │   │   └── ProductTable.tsx
+│   │   │   │   └── hooks/
+│   │   │   │       └── useAdjustStockForm.ts
+│   │   │   ├── sales/                         # Sprint 2
+│   │   │   │   ├── index.tsx                  # Sales page (cart + checkout)
+│   │   │   │   ├── history.tsx                # Sale history page
+│   │   │   │   └── components/
+│   │   │   │       ├── ProductSearch.tsx       # Product picker with search
+│   │   │   │       ├── CartTable.tsx           # Cart with qty controls + XLSX export
+│   │   │   │       ├── SaleSummary.tsx         # Real-time total display
+│   │   │   │       └── SaleDetailModal.tsx     # Receipt modal
+│   │   │   └── reports/                       # US 3.1
+│   │   │       └── index.tsx                  # Daily report with ECharts charts
 │   │   ├── utils/
 │   │   │   └── format.ts
 │   │   ├── App.tsx
